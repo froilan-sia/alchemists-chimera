@@ -1,0 +1,7 @@
+rdflib>=7.0.0
+chromadb>=0.4.20
+pydantic>=2.5.0
+pytest>=8.0.0
+fastapi>=0.110.0
+uvicorn>=0.28.0
+numpy>=1.26.0
