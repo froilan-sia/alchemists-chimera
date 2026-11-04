@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run Tests on Save",
+      "trigger": "PostFileSave",
+      "description": "Automatically runs pytest tests when Python files are saved. Ensures code quality and prevents regressions.",
+      "matcher": ".*\\.py$",
+      "action": {
+        "type": "command",
+        "command": "cd /Users/froilansia/git/alchemists-chimera && python -m pytest tests/ -xvs --tb=short",
+        "timeout": 180
+      }
+    }
+  ]
+}

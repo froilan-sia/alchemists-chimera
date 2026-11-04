@@ -1,0 +1,17 @@
+@prefix : <http://example.org/test#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:TestOntology a owl:Ontology ;
+    rdfs:label "Test Ontology" ;
+    rdfs:comment "A test ontology for validation" .
+
+:TestClass a owl:Class ;
+    rdfs:label "Test Class" ;
+    rdfs:comment "A test class for validation" .
+
+:testInstance a :TestClass ;
+    rdfs:label "Test Instance" ;
+    :hasValue "123"^^xsd:string .

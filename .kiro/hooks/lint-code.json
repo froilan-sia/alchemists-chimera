@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Lint Code on Save",
+      "trigger": "PostFileSave",
+      "description": "Automatically runs code linting and formatting when Python files are saved. Enforces coding standards from steering files.",
+      "matcher": ".*\\.py$",
+      "action": {
+        "type": "command",
+        "command": "cd /Users/froilansia/git/alchemists-chimera && python -m black --check . && python -m isort --check-only . && python -m flake8 .",
+        "timeout": 60
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Validate Ontology Changes",
+      "trigger": "PostFileSave",
+      "description": "Automatically validates RDF ontology files using SHACL when they are saved. Demonstrates Kiro automation for data quality assurance.",
+      "matcher": ".*\\.ttl$",
+      "action": {
+        "type": "command",
+        "command": "bash /Users/froilansia/git/alchemists-chimera/.kiro/hooks/validate_ontology.sh \"$KIRO_FILE_PATH\"",
+        "timeout": 120
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Initialize Development Environment",
+      "trigger": "SessionStart",
+      "description": "Sets up the development environment when a new Kiro session starts. Checks dependencies, creates necessary directories, and provides project overview.",
+      "action": {
+        "type": "command",
+        "command": "cd /Users/froilansia/git/alchemists-chimera && echo \"🚀 Initializing Alchemist's Chimera Development Environment\" && echo \"==================================================\" && echo \"\" && echo \"📁 Project: Hybrid Graph-Vector RAG Engine\" && echo \"🎃 Hackathon: Kiroween 2026\" && echo \"📅 Submission Period: Oct 30 - Dec 4, 2026\" && echo \"\" && echo \"🔍 Checking dependencies...\" && python -c \"import sys; print(f'Python: {sys.version}')\" && echo \"\" && echo \"📦 Required packages:\" && echo \"  - rdflib (graph operations)\" && echo \"  - chromadb (vector database)\" && echo \"  - pydantic (data validation)\" && echo \"  - sentence-transformers (embeddings)\" && echo \"  - ollama (local LLM)\" && echo \"\" && echo \"⚙️  Creating necessary directories...\" && mkdir -p data ontology models tests/unit tests/integration && echo \"✅ Directories created: data/, ontology/, models/, tests/{unit,integration}/\" && echo \"\" && echo \"📚 Available steering files:\" && ls -la .kiro/steering/ | grep .md && echo \"\" && echo \"🔄 Available hooks:\" && ls -la .kiro/hooks/ | grep .json && echo \"\" && echo \"🎯 Next steps:\" && echo \"  1. Review hybrid_rag_spec.md for implementation plan\" && echo \"  2. Check coding_standards.md for development guidelines\" && echo \"  3. Run 'pip install -r requirements.txt' to install dependencies\" && echo \"  4. Start implementing Phase 1 tasks\" && echo \"\" && echo \"🔗 GitHub Repository: https://github.com/froilan-sia/alchemists-chimera\" && echo \"🔗 Finance Ontology Reference: https://github.com/froilan-sia/finance-ontology-rag\" && echo \"\" && echo \"✨ Ready for Kiro-powered development!\"",
+        "timeout": 30
+      }
+    }
+  ]
+}
