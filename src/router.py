@@ -49,6 +49,9 @@ class HybridRouter:
         """
         self.logger.info(f"Processing query: {request.query[:50]}...")
         
+        import time
+        start_time = time.time()
+        
         try:
             # 1. Classify query intent
             query_type = await self._classify_intent(request)
@@ -70,17 +73,19 @@ class HybridRouter:
             # 6. Generate response
             answer, confidence = await self._generate_response(context, request)
             
+            processing_time = time.time() - start_time
+            
             # Create response
             response = HybridResponse(
                 answer=answer,
                 sources=fused_results,
                 confidence=confidence,
                 query_type=query_type,
-                processing_time=0.0,  # Will be set by API layer
+                processing_time=processing_time,
             )
             
             self.logger.info(
-                f"Query processed successfully. "
+                f"Query processed successfully in {processing_time:.2f}s. "
                 f"Type: {query_type}, Alpha: {alpha}, "
                 f"Results: {len(fused_results)}, Confidence: {confidence:.2f}"
             )

@@ -99,10 +99,11 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000, description="API port")
     api_workers: int = Field(default=1, description="API worker processes")
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+    }
 
 
 # Global settings instance

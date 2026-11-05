@@ -7,7 +7,7 @@ Uses Pydantic for validation, serialization, and type safety.
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .config import QueryType
 
@@ -44,8 +44,8 @@ class QueryRequest(BaseModel):
         description="Additional query metadata"
     )
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "What are the capital requirements for banks under Basel III?",
                 "query_type": "regulatory",
@@ -54,6 +54,7 @@ class QueryRequest(BaseModel):
                 "metadata": {"user_id": "user123", "session_id": "session456"}
             }
         }
+    )
 
 
 class RetrievalResult(BaseModel):
@@ -84,8 +85,8 @@ class RetrievalResult(BaseModel):
         description="Chunk position within document"
     )
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "content": "Basel III requires banks to maintain a minimum capital ratio of 8% of risk-weighted assets.",
                 "source": "graph",
@@ -100,6 +101,7 @@ class RetrievalResult(BaseModel):
                 "chunk_index": 3
             }
         }
+    )
 
 
 class HybridResponse(BaseModel):
@@ -127,8 +129,8 @@ class HybridResponse(BaseModel):
         description="Response timestamp"
     )
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "answer": "Under Basel III, banks must maintain a minimum capital ratio of 8% of risk-weighted assets. This includes 4.5% Common Equity Tier 1 (CET1) capital and 6% Tier 1 capital.",
                 "sources": [
@@ -145,6 +147,7 @@ class HybridResponse(BaseModel):
                 "timestamp": "2026-11-04T14:30:00Z"
             }
         }
+    )
 
 
 class HealthStatus(BaseModel):
@@ -158,8 +161,8 @@ class HealthStatus(BaseModel):
         description="Status of individual components"
     )
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "status": "healthy",
                 "version": "0.1.0",
@@ -171,6 +174,7 @@ class HealthStatus(BaseModel):
                 }
             }
         }
+    )
 
 
 class ErrorResponse(BaseModel):
@@ -180,11 +184,12 @@ class ErrorResponse(BaseModel):
     detail: Optional[str] = Field(default=None, description="Detailed error information")
     timestamp: datetime = Field(default_factory=datetime.now)
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "error": "Invalid query parameter",
                 "detail": "Alpha parameter must be between 0 and 1",
                 "timestamp": "2026-11-04T14:30:00Z"
             }
         }
+    )

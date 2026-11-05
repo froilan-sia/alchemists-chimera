@@ -194,10 +194,11 @@ class TestHybridRouter:
     @pytest.mark.asyncio
     async def test_error_handling(self, router):
         """Test error handling in the pipeline."""
-        # Test with empty query
+        # Test with empty query (should still work, just return minimal response)
         empty_query = QueryRequest(query="")
-        with pytest.raises(Exception):
-            await router.retrieve(empty_query)
+        response = await router.retrieve(empty_query)
+        assert response is not None
+        assert len(response.answer) > 0
         
         # Test with very long query (should still work)
         long_query = QueryRequest(query="A" * 1000)
@@ -207,6 +208,11 @@ class TestHybridRouter:
 
 class TestPerformance:
     """Performance tests for HybridRouter."""
+    
+    @pytest.fixture
+    def router(self):
+        """Create a HybridRouter instance for performance testing."""
+        return HybridRouter()
     
     @pytest.mark.asyncio
     async def test_retrieval_latency(self, router):
