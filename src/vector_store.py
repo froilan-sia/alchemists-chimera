@@ -11,8 +11,8 @@ from pathlib import Path
 import chromadb
 from chromadb.config import Settings
 
-from src.config import settings
-from src.models import RetrievalResult, RetrievalSource
+from .config import settings
+from .models import RetrievalResult, RetrievalSource
 
 logger = logging.getLogger(__name__)
 

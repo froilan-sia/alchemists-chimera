@@ -13,8 +13,8 @@ from rdflib import Graph, Namespace, URIRef, Literal
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.namespace import RDF, RDFS, OWL
 
-from src.config import settings
-from src.models import RetrievalResult, RetrievalSource
+from .config import settings
+from .models import RetrievalResult, RetrievalSource
 
 logger = logging.getLogger(__name__)
 

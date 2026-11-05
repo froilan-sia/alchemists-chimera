@@ -9,7 +9,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
-from src.models import RetrievalResult, RetrievalSource
+from .models import RetrievalResult, RetrievalSource
 
 logger = logging.getLogger(__name__)
 
