@@ -14,6 +14,9 @@ __description__ = "Local hybrid graph-vector RAG engine"
 from .router import HybridRouter
 from .config import Settings, QueryType
 from .models import QueryRequest, RetrievalResult, HybridResponse, RetrievalSource
+from .graph_store import GraphStore, get_graph_store
+from .vector_store import VectorStore, get_vector_store
+from .fusion import FusionEngine, FusionConfig, get_fusion_engine
 
 __all__ = [
     "HybridRouter",
@@ -23,4 +26,11 @@ __all__ = [
     "RetrievalResult",
     "HybridResponse",
     "RetrievalSource",
+    "GraphStore",
+    "get_graph_store",
+    "VectorStore",
+    "get_vector_store",
+    "FusionEngine",
+    "FusionConfig",
+    "get_fusion_engine",
 ]
