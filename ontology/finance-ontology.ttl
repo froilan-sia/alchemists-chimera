@@ -1,0 +1,324 @@
+@prefix : <http://example.org/finance#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix chimera: <http://example.org/chimera#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+:FinanceOntology a owl:Ontology ;
+    rdfs:label "Finance and Regulatory Ontology" ;
+    rdfs:comment "A comprehensive ontology for financial institutions, regulations, and compliance" ;
+    dc:created "2024-11-11"^^xsd:date ;
+    dc:creator "The Alchemist's Chimera Project" .
+
+###############################################################################
+# Core Financial Entities
+###############################################################################
+
+:FinancialInstitution a owl:Class ;
+    rdfs:label "Financial Institution" ;
+    rdfs:comment "A bank, insurance company, or other financial service provider" ;
+    skos:definition "An entity that provides financial services to customers." .
+
+:Bank a owl:Class ;
+    rdfs:subClassOf :FinancialInstitution ;
+    rdfs:label "Bank" ;
+    rdfs:comment "A licensed financial institution that accepts deposits and makes loans" .
+
+:InsuranceCompany a owl:Class ;
+    rdfs:subClassOf :FinancialInstitution ;
+    rdfs:label "Insurance Company" ;
+    rdfs:comment "A company that provides insurance services" .
+
+:CentralBank a owl:Class ;
+    rdfs:subClassOf :FinancialInstitution ;
+    rdfs:label "Central Bank" ;
+    rdfs:comment "A national bank that provides financial services to government and commercial banks" .
+
+:RegulatoryBody a owl:Class ;
+    rdfs:label "Regulatory Body" ;
+    rdfs:comment "An organization that creates and enforces regulations" ;
+    skos:definition "Government or independent agency responsible for regulating financial markets." .
+
+###############################################################################
+# Regulatory Framework
+###############################################################################
+
+:Regulation a owl:Class ;
+    rdfs:label "Regulation" ;
+    rdfs:comment "A rule or directive made and maintained by an authority" ;
+    skos:definition "Official rule that governs financial institutions' operations." .
+
+:CapitalRequirement a owl:Class ;
+    rdfs:subClassOf :Regulation ;
+    rdfs:label "Capital Requirement" ;
+    rdfs:comment "Regulatory standards for minimum capital that banks must hold" .
+
+:BaselIII a owl:Class ;
+    rdfs:subClassOf :Regulation ;
+    rdfs:label "Basel III" ;
+    rdfs:comment "International regulatory framework for banks, developed by the Basel Committee on Banking Supervision" .
+
+:HKMAFramework a owl:Class ;
+    rdfs:subClassOf :Regulation ;
+    rdfs:label "HKMA Regulatory Framework" ;
+    rdfs:comment "Hong Kong Monetary Authority regulatory framework for financial institutions" .
+
+:ComplianceFramework a owl:Class ;
+    rdfs:label "Compliance Framework" ;
+    rdfs:comment "Structured set of guidelines to ensure adherence to laws and regulations" .
+
+###############################################################################
+# Capital and Risk Concepts
+###############################################################################
+
+:CapitalRatio a owl:Class ;
+    rdfs:label "Capital Ratio" ;
+    rdfs:comment "Ratio of a bank's capital to its risk-weighted assets" ;
+    skos:definition "Financial metric measuring bank's financial strength relative to risk exposure." .
+
+:Tier1Capital a owl:Class ;
+    rdfs:subClassOf :CapitalRatio ;
+    rdfs:label "Tier 1 Capital Ratio" ;
+    rdfs:comment "Core capital ratio consisting of equity capital and disclosed reserves" .
+
+:CommonEquityTier1 a owl:Class ;
+    rdfs:subClassOf :Tier1Capital ;
+    rdfs:label "Common Equity Tier 1 (CET1)" ;
+    rdfs:comment "Highest quality of regulatory capital, primarily common shares and retained earnings" .
+
+:LeverageRatio a owl:Class ;
+    rdfs:label "Leverage Ratio" ;
+    rdfs:comment "Non-risk-based capital measure of bank's core capital to total exposures" .
+
+:RiskWeightedAsset a owl:Class ;
+    rdfs:label "Risk-Weighted Asset" ;
+    rdfs:comment "Bank assets weighted according to risk, used to determine capital requirements" .
+
+:CapitalBuffer a owl:Class ;
+    rdfs:label "Capital Buffer" ;
+    rdfs:comment "Additional capital that banks must hold above minimum requirements" .
+
+:CountercyclicalBuffer a owl:Class ;
+    rdfs:subClassOf :CapitalBuffer ;
+    rdfs:label "Countercyclical Capital Buffer" ;
+    rdfs:comment "Buffer that varies with the credit cycle to protect banking sector" .
+
+:ConservationBuffer a owl:Class ;
+    rdfs:subClassOf :CapitalBuffer ;
+    rdfs:label "Capital Conservation Buffer" ;
+    rdfs:comment "Buffer designed to ensure banks build up capital outside periods of stress" .
+
+###############################################################################
+# Risk Management
+###############################################################################
+
+:RiskCategory a owl:Class ;
+    rdfs:label "Risk Category" ;
+    rdfs:comment "Classification of types of risk faced by financial institutions" .
+
+:CreditRisk a owl:Class ;
+    rdfs:subClassOf :RiskCategory ;
+    rdfs:label "Credit Risk" ;
+    rdfs:comment "Risk of loss due to borrower's failure to repay a loan" .
+
+:MarketRisk a owl:Class ;
+    rdfs:subClassOf :RiskCategory ;
+    rdfs:label "Market Risk" ;
+    rdfs:comment "Risk of losses due to movements in market prices" .
+
+:OperationalRisk a owl:Class ;
+    rdfs:subClassOf :RiskCategory ;
+    rdfs:label "Operational Risk" ;
+    rdfs:comment "Risk of loss from inadequate or failed internal processes, people, or systems" .
+
+:LiquidityRisk a owl:Class ;
+    rdfs:subClassOf :RiskCategory ;
+    rdfs:label "Liquidity Risk" ;
+    rdfs:comment "Risk that a bank cannot meet its short-term financial demands" .
+
+###############################################################################
+# Compliance and Reporting
+###############################################################################
+
+:ReportingRequirement a owl:Class ;
+    rdfs:label "Reporting Requirement" ;
+    rdfs:comment "Mandatory reporting obligations for financial institutions" .
+
+:StressTest a owl:Class ;
+    rdfs:label "Stress Test" ;
+    rdfs:comment "Assessment of how financial institutions can cope with adverse economic scenarios" .
+
+:Audit a owl:Class ;
+    rdfs:label "Audit" ;
+    rdfs:comment "Systematic examination of financial records and compliance" .
+
+:ComplianceCheck a owl:Class ;
+    rdfs:label "Compliance Check" ;
+    rdfs:comment "Verification of adherence to regulatory requirements" .
+
+###############################################################################
+# Properties (Relationships)
+###############################################################################
+
+:regulatedBy a owl:ObjectProperty ;
+    rdfs:label "regulated by" ;
+    rdfs:comment "Relationship between financial institution and its regulatory body" ;
+    rdfs:domain :FinancialInstitution ;
+    rdfs:range :RegulatoryBody .
+
+:subjectTo a owl:ObjectProperty ;
+    rdfs:label "subject to" ;
+    rdfs:comment "Relationship indicating an entity must comply with a regulation" ;
+    rdfs:domain :FinancialInstitution ;
+    rdfs:range :Regulation .
+
+:hasCapitalRatio a owl:ObjectProperty ;
+    rdfs:label "has capital ratio" ;
+    rdfs:comment "Relationship between bank and its capital ratio metrics" ;
+    rdfs:domain :Bank ;
+    rdfs:range :CapitalRatio .
+
+:minimumRequirement a owl:DatatypeProperty ;
+    rdfs:label "minimum requirement" ;
+    rdfs:comment "Minimum percentage or value required by regulation" ;
+    rdfs:domain :Regulation ;
+    rdfs:range xsd:decimal .
+
+:currentLevel a owl:DatatypeProperty ;
+    rdfs:label "current level" ;
+    rdfs:comment "Current value or percentage maintained by institution" ;
+    rdfs:domain :CapitalRatio ;
+    rdfs:range xsd:decimal .
+
+:effectiveDate a owl:DatatypeProperty ;
+    rdfs:label "effective date" ;
+    rdfs:comment "Date when regulation becomes effective" ;
+    rdfs:domain :Regulation ;
+    rdfs:range xsd:date .
+
+:reportingFrequency a owl:DatatypeProperty ;
+    rdfs:label "reporting frequency" ;
+    rdfs:comment "How often reports must be submitted" ;
+    rdfs:domain :ReportingRequirement ;
+    rdfs:range xsd:string .
+
+:appliesTo a owl:ObjectProperty ;
+    rdfs:label "applies to" ;
+    rdfs:comment "Regulation applies to specific type of institution" ;
+    rdfs:domain :Regulation ;
+    rdfs:range :FinancialInstitution .
+
+:hasRiskExposure a owl:ObjectProperty ;
+    rdfs:label "has risk exposure" ;
+    rdfs:comment "Institution is exposed to specific risk category" ;
+    rdfs:domain :FinancialInstitution ;
+    rdfs:range :RiskCategory .
+
+:requiresApproval a owl:ObjectProperty ;
+    rdfs:label "requires approval" ;
+    rdfs:comment "Action or decision requires regulatory approval" ;
+    rdfs:range :RegulatoryBody .
+
+###############################################################################
+# Individual Instances (Sample Data)
+###############################################################################
+
+:HKMA a :RegulatoryBody ;
+    rdfs:label "Hong Kong Monetary Authority" ;
+    rdfs:comment "Central banking institution of Hong Kong" ;
+    dc:description "The Hong Kong Monetary Authority is Hong Kong's central banking institution." .
+
+:BaselCommittee a :RegulatoryBody ;
+    rdfs:label "Basel Committee on Banking Supervision" ;
+    rdfs:comment "International committee of banking supervisors" .
+
+:HSBC a :Bank ;
+    rdfs:label "HSBC Holdings plc" ;
+    rdfs:comment "British multinational investment bank and financial services holding company" ;
+    :regulatedBy :HKMA .
+
+:StandardChartered a :Bank ;
+    rdfs:label "Standard Chartered Bank" ;
+    rdfs:comment "British multinational bank with operations in Hong Kong" ;
+    :regulatedBy :HKMA .
+
+:BankOfChinaHK a :Bank ;
+    rdfs:label "Bank of China (Hong Kong)" ;
+    rdfs:comment "Hong Kong-incorporated bank and subsidiary of Bank of China" ;
+    :regulatedBy :HKMA .
+
+:BaselIIIFramework a :BaselIII ;
+    rdfs:label "Basel III Framework" ;
+    rdfs:comment "International regulatory framework for banks" ;
+    :effectiveDate "2010-12-01"^^xsd:date ;
+    :appliesTo :Bank .
+
+:CapitalRequirementReg a :CapitalRequirement ;
+    rdfs:label "Capital Requirements Regulation" ;
+    rdfs:comment "Regulation specifying minimum capital requirements" ;
+    :minimumRequirement "8.0"^^xsd:decimal .
+
+:CET1Requirement a :CommonEquityTier1 ;
+    rdfs:label "CET1 Minimum Requirement" ;
+    rdfs:comment "Minimum Common Equity Tier 1 capital ratio" ;
+    :currentLevel "4.5"^^xsd:decimal .
+
+:Tier1Requirement a :Tier1Capital ;
+    rdfs:label "Tier 1 Capital Requirement" ;
+    rdfs:comment "Minimum Tier 1 capital ratio" ;
+    :currentLevel "6.0"^^xsd:decimal .
+
+:LeverageRatioReg a :LeverageRatio ;
+    rdfs:label "Leverage Ratio Requirement" ;
+    rdfs:comment "Minimum leverage ratio requirement" ;
+    :currentLevel "3.0"^^xsd:decimal .
+
+:HSBC_CET1 a :CommonEquityTier1 ;
+    rdfs:label "HSBC CET1 Ratio" ;
+    :currentLevel "14.2"^^xsd:decimal .
+
+:HSBC_Tier1 a :Tier1Capital ;
+    rdfs:label "HSBC Tier 1 Ratio" ;
+    :currentLevel "15.6"^^xsd:decimal .
+
+:HSBC_Leverage a :LeverageRatio ;
+    rdfs:label "HSBC Leverage Ratio" ;
+    :currentLevel "5.5"^^xsd:decimal .
+
+:StandardChartered_CET1 a :CommonEquityTier1 ;
+    rdfs:label "Standard Chartered CET1 Ratio" ;
+    :currentLevel "13.7"^^xsd:decimal .
+
+:CapitalConservation a :ConservationBuffer ;
+    rdfs:label "Capital Conservation Buffer" ;
+    rdfs:comment "Buffer to ensure banks build up capital" ;
+    :currentLevel "2.5"^^xsd:decimal .
+
+###############################################################################
+# Relationships between instances
+###############################################################################
+
+:HSBC :subjectTo :BaselIIIFramework ;
+    :hasCapitalRatio :HSBC_CET1 ;
+    :hasCapitalRatio :HSBC_Tier1 ;
+    :hasCapitalRatio :HSBC_Leverage ;
+    :hasRiskExposure :CreditRisk ;
+    :hasRiskExposure :MarketRisk ;
+    :hasRiskExposure :OperationalRisk .
+
+:StandardChartered :subjectTo :BaselIIIFramework ;
+    :hasCapitalRatio :StandardChartered_CET1 ;
+    :hasRiskExposure :CreditRisk ;
+    :hasRiskExposure :LiquidityRisk .
+
+:BankOfChinaHK :subjectTo :BaselIIIFramework ;
+    :subjectTo :HKMAFramework ;
+    :hasRiskExposure :CreditRisk .
+
+:BaselIIIFramework :requiresApproval :BaselCommittee .
+
+:CapitalRequirementReg :appliesTo :Bank .
+

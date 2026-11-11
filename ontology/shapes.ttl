@@ -1,0 +1,290 @@
+@prefix : <http://example.org/finance#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix chimera: <http://example.org/chimera#> .
+
+###############################################################################
+# SHACL Shapes for Finance Ontology Validation
+###############################################################################
+
+:BankShape a sh:NodeShape ;
+    sh:targetClass :Bank ;
+    sh:property [
+        sh:path :regulatedBy ;
+        sh:class :RegulatoryBody ;
+        sh:minCount 1 ;
+        sh:message "Banks must have at least one regulatory body" ;
+    ] ;
+    sh:property [
+        sh:path :subjectTo ;
+        sh:class :Regulation ;
+        sh:minCount 1 ;
+        sh:message "Banks must be subject to at least one regulation" ;
+    ] ;
+    sh:property [
+        sh:path :hasCapitalRatio ;
+        sh:class :CapitalRatio ;
+        sh:minCount 1 ;
+        sh:message "Banks must have at least one capital ratio" ;
+    ] ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:message "Banks must have a label" ;
+    ] .
+
+:RegulatoryBodyShape a sh:NodeShape ;
+    sh:targetClass :RegulatoryBody ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Regulatory bodies must have exactly one label" ;
+    ] ;
+    sh:property [
+        sh:path rdfs:comment ;
+        sh:datatype xsd:string ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+        sh:message "Regulatory bodies may have an optional comment" ;
+    ] .
+
+:RegulationShape a sh:NodeShape ;
+    sh:targetClass :Regulation ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Regulations must have exactly one label" ;
+    ] ;
+    sh:property [
+        sh:path :effectiveDate ;
+        sh:datatype xsd:date ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+        sh:message "Regulations may have an optional effective date" ;
+    ] ;
+    sh:property [
+        sh:path :appliesTo ;
+        sh:class :FinancialInstitution ;
+        sh:minCount 0 ;
+        sh:message "Regulations may apply to financial institutions" ;
+    ] .
+
+:CapitalRatioShape a sh:NodeShape ;
+    sh:targetClass :CapitalRatio ;
+    sh:property [
+        sh:path :currentLevel ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 100.0 ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+        sh:message "Capital ratios must be decimal percentages between 0 and 100" ;
+    ] ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Capital ratios must have exactly one label" ;
+    ] .
+
+:CapitalRequirementShape a sh:NodeShape ;
+    sh:targetClass :CapitalRequirement ;
+    sh:property [
+        sh:path :minimumRequirement ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 50.0 ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Capital requirements must have a minimum requirement between 0 and 50 percent" ;
+    ] .
+
+:BaselIIIShape a sh:NodeShape ;
+    sh:targetClass :BaselIII ;
+    sh:property [
+        sh:path :minimumRequirement ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 4.5 ;
+        sh:maxInclusive 13.0 ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Basel III requirements must be between 4.5% and 13%" ;
+    ] ;
+    sh:property [
+        sh:path :requiresApproval ;
+        sh:class :RegulatoryBody ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+        sh:message "Basel III may require approval from a regulatory body" ;
+    ] .
+
+###############################################################################
+# Generic SHACL Shapes for Dynamic Entities
+###############################################################################
+
+:GenericEntityShape a sh:NodeShape ;
+    sh:targetSubjectsOf rdf:type ;
+    sh:property [
+        sh:path rdf:type ;
+        sh:nodeKind sh:IRI ;
+        sh:minCount 1 ;
+        sh:message "All entities must have at least one type" ;
+    ] ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "All entities must have exactly one label" ;
+    ] ;
+    sh:property [
+        sh:path chimera:sourceChunk ;
+        sh:datatype xsd:string ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+        sh:message "Entities may have a source chunk reference" ;
+    ] ;
+    sh:property [
+        sh:path chimera:pageNumber ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 1 ;
+        sh:maxInclusive 1000 ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+        sh:message "Page numbers must be between 1 and 1000" ;
+    ] .
+
+:GenericRelationshipShape a sh:NodeShape ;
+    sh:targetSubjectsOf chimera:relatedTo ;
+    sh:property [
+        sh:path chimera:relatedTo ;
+        sh:nodeKind sh:IRI ;
+        sh:minCount 1 ;
+        sh:message "All relationships must have at least one related entity" ;
+    ] ;
+    sh:property [
+        sh:path chimera:confidence ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 1.0 ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+        sh:message "Confidence scores must be between 0.0 and 1.0" ;
+    ] ;
+    sh:property [
+        sh:path chimera:extractionMethod ;
+        sh:datatype xsd:string ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+        sh:message "Extraction method is optional" ;
+    ] .
+
+###############################################################################
+# SHACL Shapes for Chimera Provenance
+###############################################################################
+
+:ProvenanceShape a sh:NodeShape ;
+    sh:targetClass chimera:ProvenanceRecord ;
+    sh:property [
+        sh:path chimera:extractionTimestamp ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Provenance records must have exactly one extraction timestamp" ;
+    ] ;
+    sh:property [
+        sh:path chimera:sourceDocument ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Provenance records must have exactly one source document" ;
+    ] ;
+    sh:property [
+        sh:path chimera:extractorVersion ;
+        sh:datatype xsd:string ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+        sh:message "Extractor version is optional" ;
+    ] ;
+    sh:property [
+        sh:path chimera:validationStatus ;
+        sh:in ("VALID" "QUARANTINED" "REJECTED" "PENDING") ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Validation status must be one of: VALID, QUARANTINED, REJECTED, PENDING" ;
+    ] .
+
+###############################################################################
+# Constraint on relationships between specific types
+###############################################################################
+
+:BankRegulationConstraint a sh:NodeShape ;
+    sh:targetClass :Bank ;
+    sh:property [
+        sh:path :subjectTo ;
+        sh:qualifiedValueShape [
+            sh:path rdf:type ;
+            sh:hasValue :CapitalRequirement ;
+        ] ;
+        sh:qualifiedMinCount 1 ;
+        sh:message "Banks must be subject to at least one capital requirement regulation" ;
+    ] .
+
+:RatioValueConstraint a sh:NodeShape ;
+    sh:targetClass :CapitalRatio ;
+    sh:property [
+        sh:path :currentLevel ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0.0 ;
+        sh:message "Capital ratios cannot be negative" ;
+    ] ;
+    sh:sparql [
+        sh:message "Capital ratios should typically be above 4.5% for Basel III compliance" ;
+        sh:prefixes : ;
+        sh:select """
+            SELECT ?this ?value
+            WHERE {
+                ?this :currentLevel ?value .
+                FILTER (?value < 4.5)
+            }
+        """ ;
+    ] .
+
+###############################################################################
+# Shape for evidence grounding validation
+###############################################################################
+
+:EvidenceShape a sh:NodeShape ;
+    sh:targetSubjectsOf chimera:hasEvidence ;
+    sh:property [
+        sh:path chimera:hasEvidence ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Entities with evidence must have exactly one evidence string" ;
+    ] ;
+    sh:property [
+        sh:path chimera:evidenceVerified ;
+        sh:datatype xsd:boolean ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Evidence verification status must be specified" ;
+    ] ;
+    sh:property [
+        sh:path chimera:verificationMethod ;
+        sh:datatype xsd:string ;
+        sh:in ("exact_match" "substring" "semantic") ;
+        sh:minCount 0 ;
+        sh:maxCount 1 ;
+        sh:message "Verification method must be one of: exact_match, substring, semantic" ;
+    ] .
+
