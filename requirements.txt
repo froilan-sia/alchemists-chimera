@@ -49,3 +49,21 @@ pdoc>=14.0.0
 # Monitoring & Observability
 prometheus-client>=0.19.0
 structlog>=23.0.0
+
+# PDF Ingestion & Streamlit UI
+streamlit>=1.32.0
+pypdf>=3.17.0
+pyvis>=0.3.2
+networkx>=3.0
+
+# PDF Ingestion Specific
+spacy>=3.7.0
+# Note: spaCy model will be downloaded separately
+
+# Streamlit Graph Visualization (alternative to pyvis)
+streamlit-agraph>=0.4.0
+
+# PDF Processing
+pdfminer.six>=20221105
+pdfplumber>=0.10.0
+

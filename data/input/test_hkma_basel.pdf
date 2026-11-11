@@ -1,0 +1,62 @@
+# HKMA/Basel III Regulatory Framework Test Document
+
+## Capital Requirements Framework
+
+The Hong Kong Monetary Authority (HKMA) implements the Basel III regulatory framework for capital adequacy standards.
+
+### Key Components:
+1. **Minimum Capital Requirements**
+   - Common Equity Tier 1 (CET1): Minimum 4.5% of risk-weighted assets
+   - Tier 1 Capital: Minimum 6.0% of risk-weighted assets
+   - Total Capital: Minimum 8.0% of risk-weighted assets
+
+2. **Capital Conservation Buffer**
+   - 2.5% of risk-weighted assets
+   - Must be met with CET1 capital
+
+3. **Countercyclical Capital Buffer**
+   - Range: 0% to 2.5% of risk-weighted assets
+   - HKMA may adjust based on credit cycle
+
+4. **Leverage Ratio**
+   - Minimum 3.0% for all banks
+   - Tier 1 capital to total exposures
+
+## HKMA Implementation Guidelines
+
+### Local Implementation
+- **Scope**: All authorized institutions in Hong Kong
+- **Timeline**: Phased implementation completed in 2019
+- **Supervision**: Regular stress testing and supervisory review
+
+### Additional Requirements
+- **Higher Loss Absorbency (HLA)** for domestic systemically important banks (D-SIBs)
+- **Loss Absorbing Capacity (LAC)** requirements for resolution planning
+- **Net Stable Funding Ratio (NSFR)** requirements
+
+## Compliance Monitoring
+
+### Reporting Requirements
+- Monthly regulatory returns (MA(BS)1)
+- Quarterly capital adequacy returns
+- Annual stress testing results
+
+### Enforcement Actions
+- Capital add-ons for non-compliance
+- Restrictions on dividends and bonuses
+- Supervisory actions for persistent deficiencies
+
+## Recent Developments
+
+### 2023 Updates
+- Enhanced climate risk stress testing
+- Digital banking regulatory framework
+- Crypto-asset exposure guidelines
+
+### Future Directions
+- ESG integration in capital requirements
+- AI/ML model risk management
+- Cross-border regulatory harmonization
+
+---
+*Document generated for Alchemist's Chimera testing purposes*
