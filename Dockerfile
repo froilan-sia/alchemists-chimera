@@ -1,44 +1,72 @@
-# Alchemist's Chimera - Hybrid RAG Engine
+# Alchemist's Chimera - Hugging Face Spaces image
 # Kiroween Hackathon 2026 Submission
 
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Hugging Face Spaces runs the application as UID 1000.
+ENV OLLAMA_MODELS=/app/.ollama/models \
+    HF_HOME=/app/.cache \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Install the compilers and tools required by the Python dependencies and Ollama.
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     curl \
     git \
+    zstd \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Ollama (for local LLM)
-RUN curl -fsSL https://ollama.ai/install.sh | sh
+# Install Ollama for local, air-gapped LLM inference.
+RUN curl -fsSL https://ollama.com/install.sh | sh
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install the pinned application dependency set, including Streamlit, pypdf,
+# PyVis, spaCy, and the local Ollama client.
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Download spaCy model
+# Download the entity extraction model into the image so startup does not need
+# network access for the spaCy model.
 RUN python -m spacy download en_core_web_sm
 
-# Copy application code
-COPY . .
+# Copy the Streamlit entrypoint, startup supervisor, application packages, and runtime assets.
+COPY start.sh /app/start.sh
+COPY app.py /app/app.py
+COPY components/ /app/components/
+COPY core/ /app/core/
+COPY src/ /app/src/
+COPY .streamlit/ /app/.streamlit/
+COPY data/ /app/data/
+COPY ontology/ /app/ontology/
 
-# Create data directory
-RUN mkdir -p /app/data /app/ontology /app/models
+# Create writable runtime and persistence directories even when a source
+# directory is empty in the build context.
+RUN mkdir -p \
+    /app/.ollama/models \
+    /app/.cache \
+    /app/data/cache \
+    /app/data/graphs \
+    /app/data/input \
+    /app/data/tmp \
+    /app/data/uploads \
+    /app/data/vector_store \
+    /app/models \
+    /app/ontology \
+    && useradd --create-home --uid 1000 --shell /bin/bash appuser \
+    && chown -R appuser:appuser /app \
+    && chmod -R 777 /app \
+    && chmod +x /app/start.sh
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Streamlit exposes this lightweight readiness endpoint without requiring an
+# additional API server.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD curl --fail --silent http://localhost:7860/_stcore/health || exit 1
 
-# Expose port
-EXPOSE 8000
+EXPOSE 7860
 
-# Default command (can be overridden)
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/start.sh"]

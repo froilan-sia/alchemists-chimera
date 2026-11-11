@@ -23,6 +23,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 import hashlib
 import copy
+import os
+import shutil
+import tempfile
 
 # RDFLib imports for proper namespace handling
 from rdflib import Graph, Namespace, URIRef, Literal, RDF, RDFS, XSD
@@ -34,6 +37,7 @@ from .ingestor.pipeline import ValidationStatus, StagingRecord
 from .ingestor.provenance_manager import ProvenanceManager, ProvenanceRecord
 from .graph_store import GraphStore, get_graph_store
 from .config import settings
+from .compliance import ComplianceAuditTrail
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +142,8 @@ class TransactionContext:
     backup_graph: Optional[Graph] = None
     backup_records: Dict[str, Any] = field(default_factory=dict)
     backup_state: Dict[str, Any] = field(default_factory=dict)
+    approved_kg_existed: bool = False
+    approved_kg_bytes: Optional[bytes] = None
 
 
 class StagingManager:
@@ -146,13 +152,17 @@ class StagingManager:
     def __init__(self, 
                  staging_path: Optional[Path] = None,
                  approved_kg_path: Optional[Path] = None,
-                 provenance_manager: Optional[ProvenanceManager] = None):
+                 provenance_manager: Optional[ProvenanceManager] = None,
+                 audit_trail_path: Optional[Path] = None,
+                 require_human_approval: bool = False):
         """Initialize staging manager.
         
         Args:
             staging_path: Path to store staging data
             approved_kg_path: Path to approved knowledge graph file
             provenance_manager: ProvenanceManager instance for provenance handling
+            audit_trail_path: Optional JSONL path for compliance audit events
+            require_human_approval: Keep valid candidates staged until a reviewer acts
         """
         # Path configuration
         self.staging_path = Path(staging_path or settings.get("staging_path", "./data/staging"))
@@ -164,6 +174,11 @@ class StagingManager:
         
         # Initialize components
         self.provenance_manager = provenance_manager or ProvenanceManager()
+        self.audit_trail = ComplianceAuditTrail(
+            audit_trail_path or self.staging_path / "compliance_audit.jsonl"
+        )
+        self.transaction_log_path = self.staging_path / "transactions.jsonl"
+        self.require_human_approval = require_human_approval
         
         # Load existing staging data
         self.staging_triples: Dict[str, StagingTriple] = {}
@@ -206,27 +221,47 @@ class StagingManager:
         }
     
     def _load_staging_data(self) -> None:
-        """Load staging data from disk."""
-        staging_files = list(self.staging_path.glob("*.json"))
-        
+        """Load staging data, backing up corrupt records instead of losing them."""
+        staging_files = [
+            path for path in self.staging_path.glob("*.json")
+            if ".corrupt." not in path.name
+        ]
+
         for file_path in staging_files:
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                
+                with open(file_path, "r", encoding="utf-8") as file_handle:
+                    data = json.load(file_handle)
                 staging_triple = StagingTriple.from_dict(data)
                 record_id = file_path.stem
                 self.staging_triples[record_id] = staging_triple
-                
-            except Exception as e:
-                logger.warning(f"Failed to load staging file {file_path}: {e}")
-    
+            except (OSError, ValueError, TypeError, KeyError) as error:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                backup_path = file_path.with_name(f"{file_path.stem}.corrupt.{timestamp}.json")
+                try:
+                    shutil.copy2(file_path, backup_path)
+                    file_path.unlink()
+                    logger.error("Backed up corrupt staging file %s to %s: %s", file_path, backup_path, error)
+                except OSError as backup_error:
+                    logger.error("Could not recover corrupt staging file %s: %s", file_path, backup_error)
+
     def _save_staging_triple(self, record_id: str, staging_triple: StagingTriple) -> None:
-        """Save staging triple to disk."""
+        """Persist one staging record atomically so interrupted writes cannot corrupt it."""
         file_path = self.staging_path / f"{record_id}.json"
-        
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(staging_triple.to_dict(), f, indent=2)
+        temporary_path: Optional[Path] = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", dir=self.staging_path,
+                prefix=f".{record_id}.", suffix=".tmp", delete=False
+            ) as file_handle:
+                temporary_path = Path(file_handle.name)
+                json.dump(staging_triple.to_dict(), file_handle, indent=2)
+                file_handle.flush()
+                os.fsync(file_handle.fileno())
+            os.replace(temporary_path, file_path)
+        except OSError:
+            if temporary_path and temporary_path.exists():
+                temporary_path.unlink(missing_ok=True)
+            raise
     
     def get_graph_store(self) -> GraphStore:
         """Get or create GraphStore instance (singleton pattern)."""
@@ -256,25 +291,36 @@ class StagingManager:
         else:
             staging_triple = triple
         
-        # Auto-approve VALID triples (as per requirements)
-        if validation_status == ValidationStatus.VALID:
-            staging_triple.approval_status = ApprovalDecision.APPROVED
-            staging_triple.reviewed_by = "auto_approval"
-            staging_triple.review_timestamp = datetime.now()
-            
-            # Auto-merge into approved KG
-            self._auto_approve_triple(staging_triple)
+        # Auto-approve VALID triples only after the graph write and reload
+        # complete. A failed auto-approval remains pending for recovery.
+        if validation_status == ValidationStatus.VALID and not self.require_human_approval:
+            try:
+                staging_triple.reviewed_by = "auto_approval"
+                staging_triple.review_timestamp = datetime.now()
+                self._auto_approve_triple(staging_triple)
+                staging_triple.approval_status = ApprovalDecision.APPROVED
+            except Exception as error:
+                logger.error("Auto-approval failed; retaining candidate for review: %s", error, exc_info=True)
+                staging_triple.reviewed_by = None
+                staging_triple.review_timestamp = None
         
         # Generate record ID with hash for uniqueness
         triple_hash = hashlib.md5(
             f"{staging_triple.subject}{staging_triple.predicate}{staging_triple.object}".encode()
         ).hexdigest()[:12]
-        record_id = f"staging_{triple_hash}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        record_id = f"staging_{triple_hash}_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
         
         # Save to memory and disk
         self.staging_triples[record_id] = staging_triple
         self._save_staging_triple(record_id, staging_triple)
-        
+        self.audit_trail.record_extraction_decision(
+            staging_triple.triple,
+            decision=validation_status.value,
+            source_document=getattr(provenance_record, "document_id", None),
+            page_number=getattr(provenance_record, "page_number", None),
+            provenance_uri=getattr(provenance_record, "triple_uri", None),
+            reason="Candidate added to controlled staging.",
+        )
         logger.info(f"Added triple to staging: {record_id} with status {validation_status}")
         logger.debug(f"Triple: {staging_triple.subject} {staging_triple.predicate} {staging_triple.object}")
         
@@ -404,7 +450,26 @@ class StagingManager:
             
             # Commit transaction
             self._commit_transaction(transaction)
-            
+
+            if reviewer.strip().casefold() in {"", "system", "auto_approval", "automated", "bot"}:
+                self.audit_trail.record(
+                    "automated_staging_decision",
+                    reviewer or "system",
+                    resource_id=record_id,
+                    details={
+                        "decision": staging_triple.approval_status.value,
+                        "reason": rejection_reason or "",
+                        "edited": edited_triple is not None,
+                    },
+                )
+            else:
+                self.audit_trail.record_human_decision(
+                    record_id,
+                    reviewer,
+                    staging_triple.approval_status.value,
+                    reason=rejection_reason or "",
+                    edited=edited_triple is not None,
+                )
             logger.info(f"Triple {record_id} processed by {reviewer}: {staging_triple.approval_status}")
             return True
             
@@ -439,6 +504,7 @@ class StagingManager:
                 
         except Exception as e:
             logger.error(f"Failed to trigger live reload: {e}")
+            raise
     
     def _merge_into_approved_kg(self, staging_triple: StagingTriple) -> None:
         """Merge approved triple into the approved knowledge graph with proper Turtle serialization.
@@ -496,14 +562,37 @@ class StagingManager:
             if hasattr(staging_triple, 'evidence') and staging_triple.evidence:
                 approved_graph.add((subject_uri, self.CHIMERA.evidence, Literal(staging_triple.evidence)))
             
-            # Serialize to Turtle format
+            # Serialize to Turtle format and retain the declared audit namespaces.
             turtle_data = approved_graph.serialize(format="turtle")
+            required_prefixes = {
+                "@prefix rdf:": "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n",
+                "@prefix rdfs:": "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n",
+                "@prefix xsd:": "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n",
+            }
+            missing_prefixes = "".join(
+                declaration
+                for marker, declaration in required_prefixes.items()
+                if marker not in turtle_data
+            )
+            turtle_data = missing_prefixes + turtle_data
             
-            # Write to file
-            with open(self.approved_kg_path, 'w', encoding='utf-8') as f:
-                f.write(turtle_data)
-            
-            logger.info(f"Merged triple into approved KG: {staging_triple.subject} {staging_triple.predicate} {staging_triple.object}")
+            # Atomic replace prevents a process interruption from leaving a
+            # partially serialized approved graph.
+            temporary_path: Optional[Path] = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", encoding="utf-8", dir=self.approved_kg_path.parent,
+                    prefix=f".{self.approved_kg_path.name}.", suffix=".tmp", delete=False
+                ) as file_handle:
+                    temporary_path = Path(file_handle.name)
+                    file_handle.write(turtle_data)
+                    file_handle.flush()
+                    os.fsync(file_handle.fileno())
+                os.replace(temporary_path, self.approved_kg_path)
+            except OSError:
+                if temporary_path and temporary_path.exists():
+                    temporary_path.unlink(missing_ok=True)
+                raise
             logger.debug(f"Approved KG now has {len(approved_graph)} triples")
             
         except Exception as e:
@@ -527,6 +616,7 @@ class StagingManager:
             
         except Exception as e:
             logger.error(f"Failed to auto-approve triple: {e}")
+            raise
     
     def _begin_transaction(self, record_id: str) -> TransactionContext:
         """Begin a transaction with backup state.
@@ -538,7 +628,10 @@ class StagingManager:
             TransactionContext with backup state
         """
         context = TransactionContext()
-        
+        context.approved_kg_existed = self.approved_kg_path.exists()
+        if context.approved_kg_existed:
+            context.approved_kg_bytes = self.approved_kg_path.read_bytes()
+
         # Backup current state
         if record_id in self.staging_triples:
             context.backup_records[record_id] = copy.deepcopy(self.staging_triples[record_id])
@@ -553,7 +646,8 @@ class StagingManager:
                 logger.warning(f"Failed to backup graph for transaction: {e}")
         
         self.current_transaction = context
-        logger.debug(f"Transaction started for record {record_id}")
+        self._write_transaction_event("begin", record_id)
+        logger.debug("Transaction started for record %s", record_id)
         
         return context
     
@@ -564,6 +658,7 @@ class StagingManager:
             context: Transaction context
         """
         self.current_transaction = None
+        self._write_transaction_event("commit", "")
         logger.debug("Transaction committed")
     
     def _rollback_transaction(self, context: TransactionContext) -> None:
@@ -578,12 +673,11 @@ class StagingManager:
                 self.staging_triples[record_id] = backup_triple
                 self._save_staging_triple(record_id, backup_triple)
             
-            # Restore graph if backed up
-            if context.backup_graph is not None:
-                turtle_data = context.backup_graph.serialize(format="turtle")
-                with open(self.approved_kg_path, 'w', encoding='utf-8') as f:
-                    f.write(turtle_data)
-            
+            if context.approved_kg_existed and context.approved_kg_bytes is not None:
+                self.approved_kg_path.write_bytes(context.approved_kg_bytes)
+            elif not context.approved_kg_existed and self.approved_kg_path.exists():
+                self.approved_kg_path.unlink()
+            self._write_transaction_event("rollback", "")
             logger.info("Transaction rolled back successfully")
             
         except Exception as e:
@@ -591,6 +685,43 @@ class StagingManager:
         
         self.current_transaction = None
     
+    def _write_transaction_event(self, event: str, record_id: str) -> None:
+        """Append a small durable transaction journal entry for recovery audits."""
+        try:
+            with self.transaction_log_path.open("a", encoding="utf-8") as file_handle:
+                file_handle.write(json.dumps({
+                    "event": event,
+                    "record_id": record_id,
+                    "timestamp": datetime.now().isoformat(),
+                }) + "\n")
+        except OSError as error:
+            logger.warning("Unable to write staging transaction journal: %s", error)
+
+    def health_check(self) -> Dict[str, Any]:
+        """Report staging persistence and knowledge-graph health."""
+        kg_status = "healthy"
+        if self.approved_kg_path.exists():
+            try:
+                graph = Graph()
+                graph.parse(self.approved_kg_path, format="turtle")
+            except Exception as error:
+                kg_status = f"error: {error}"
+        return {
+            "status": "healthy" if kg_status == "healthy" else "degraded",
+            "component": "staging_manager",
+            "records": len(self.staging_triples),
+            "pending_review": len(self.get_pending_review()),
+            "knowledge_graph": kg_status,
+            "staging_path": str(self.staging_path),
+        }
+
+    def recover_interrupted_transaction(self) -> bool:
+        """Recover a transaction left open by a process interruption."""
+        if self.current_transaction is None:
+            return False
+        self._rollback_transaction(self.current_transaction)
+        return True
+
     def edit_triple(self, 
                    record_id: str, 
                    editor: str,
@@ -645,9 +776,30 @@ class StagingManager:
         }
         
         staging_triple.edit_history.append(edit_record)
-        
+
+        # Keep the in-memory and persisted staging record aligned with the
+        # edited table values so a later approval uses the edited triple.
+        staging_triple.triple = edited_triple
+        staging_triple.subject = edited_triple.subject
+        staging_triple.predicate = edited_triple.predicate
+        staging_triple.object = edited_triple.object
+        staging_triple.evidence = edited_triple.evidence
+        staging_triple.confidence = edited_triple.confidence
+
         # Save updated staging triple
         self._save_staging_triple(record_id, staging_triple)
+        self.audit_trail.record_interaction(
+            editor,
+            "edited_staging_triple",
+            resource_id=record_id,
+            fields_changed=[field for field, value in {
+                "subject": subject,
+                "predicate": predicate,
+                "object": object,
+                "evidence": evidence,
+                "confidence": confidence,
+            }.items() if value is not None],
+        )
         
         logger.info(f"Triple {record_id} edited by {editor}")
         logger.debug(f"Edit: {original_triple.subject} -> {edited_triple.subject}")

@@ -8,7 +8,7 @@
       "matcher": ".*\\.py$",
       "action": {
         "type": "command",
-        "command": "cd /Users/froilansia/git/alchemists-chimera && python -m pytest tests/ -xvs --tb=short",
+        "command": "bash \"${KIRO_WORKSPACE_ROOT:-.}/.kiro/hooks/run_tests.sh\" --pytest tests/ -xvs --tb=short",
         "timeout": 180
       }
     }

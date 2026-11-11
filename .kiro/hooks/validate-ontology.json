@@ -8,7 +8,7 @@
       "matcher": ".*\\.ttl$",
       "action": {
         "type": "command",
-        "command": "bash /Users/froilansia/git/alchemists-chimera/.kiro/hooks/validate_ontology.sh \"$KIRO_FILE_PATH\"",
+        "command": "bash \"${KIRO_WORKSPACE_ROOT:-.}/.kiro/hooks/validate_ontology.sh\" \"$KIRO_FILE_PATH\"",
         "timeout": 120
       }
     }

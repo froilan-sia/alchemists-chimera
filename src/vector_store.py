@@ -13,6 +13,7 @@ from chromadb.config import Settings
 
 from .config import settings
 from .models import RetrievalResult, RetrievalSource
+from .performance import DatabaseConnectionPool
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,9 @@ class VectorStore:
         
         # Use provided path or default from settings
         self.persist_directory = persist_directory or settings.vector_store_path
+        self.connection_pool = DatabaseConnectionPool(
+            getattr(settings, "database_pool_size", 4)
+        )
         
         # Initialize ChromaDB client
         self.client = chromadb.PersistentClient(path=self.persist_directory)
@@ -56,26 +60,31 @@ class VectorStore:
             self.logger.error(f"Failed to initialize vector store: {e}")
             return False
     
-    def add_documents(self, documents: List[str], metadata: List[Dict[str, Any]] = None) -> List[str]:
-        """Add documents to vector store."""
+    def add_documents(
+        self,
+        documents: List[str],
+        metadata: List[Dict[str, Any]] = None,
+        ids: Optional[List[str]] = None,
+    ) -> List[str]:
+        """Add documents using pooled persistence and optional stable IDs."""
         try:
             if self.collection is None:
                 self.initialize()
-            
-            # Generate IDs
-            ids = [f"doc_{i}" for i in range(len(documents))]
-            
-            # Add to collection
-            self.collection.add(
-                documents=documents,
-                metadatas=metadata or [{} for _ in documents],
-                ids=ids
-            )
-            
-            self.logger.info(f"Added {len(documents)} documents to vector store")
-            
-            return ids
-            
+
+            document_ids = ids or [f"doc_{i}" for i in range(len(documents))]
+            if len(document_ids) != len(documents):
+                raise ValueError("ids and documents must have the same length")
+
+            with self.connection_pool.connection():
+                self.collection.add(
+                    documents=documents,
+                    metadatas=metadata or [{} for _ in documents],
+                    ids=document_ids,
+                )
+
+            self.logger.info("Added %s documents to vector store", len(documents))
+            return document_ids
+
         except Exception as e:
             self.logger.error(f"Error adding documents: {e}")
             return []
@@ -86,11 +95,12 @@ class VectorStore:
             if self.collection is None:
                 self.initialize()
             
-            # Query collection
-            results = self.collection.query(
-                query_texts=[query],
-                n_results=n_results
-            )
+            # Query collection through the bounded persistent-store pool.
+            with self.connection_pool.connection():
+                results = self.collection.query(
+                    query_texts=[query],
+                    n_results=n_results
+                )
             
             # Process results
             retrieval_results = []
@@ -127,12 +137,13 @@ class VectorStore:
             if self.collection is None:
                 self.initialize()
             
-            # Query with filter
-            results = self.collection.query(
-                query_texts=[" "],  # Empty query for metadata-only search
-                n_results=n_results,
-                where=filter
-            )
+            # Query with filter through the bounded persistent-store pool.
+            with self.connection_pool.connection():
+                results = self.collection.query(
+                    query_texts=[" "],  # Empty query for metadata-only search
+                    n_results=n_results,
+                    where=filter
+                )
             
             # Process results
             retrieval_results = []
@@ -214,7 +225,8 @@ class VectorStore:
                 "status": "healthy",
                 "collection": self.collection.name,
                 "document_count": str(self.collection.count()),
-                "persist_directory": self.persist_directory
+                "persist_directory": self.persist_directory,
+                "connection_pool": self.connection_pool.status(),
             }
             
         except Exception as e:

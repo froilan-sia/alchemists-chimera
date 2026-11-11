@@ -25,6 +25,7 @@ pyshacl>=0.21.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
 pytest-cov>=4.1.0
+hypothesis>=6.0.0
 black>=23.0.0
 isort>=5.12.0
 flake8>=6.0.0
@@ -57,13 +58,11 @@ pyvis>=0.3.2
 networkx>=3.0
 
 # PDF Ingestion Specific
-spacy>=3.7.0
 # Note: spaCy model will be downloaded separately
-
-# Streamlit Graph Visualization (alternative to pyvis)
-streamlit-agraph>=0.4.0
 
 # PDF Processing
 pdfminer.six>=20221105
 pdfplumber>=0.10.0
 
+# Alternative to streamlit-agraph (compatible with Python 3.14)
+plotly>=5.18.0

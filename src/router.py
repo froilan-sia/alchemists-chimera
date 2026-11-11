@@ -350,24 +350,53 @@ class HybridRouter:
     async def _generate_response(
         self, context: str, request: QueryRequest
     ) -> tuple[str, float]:
-        """Generate response using LLM."""
+        """Generate a response with the configured local response generator.
+
+        A deterministic fallback keeps the query surface usable when Ollama is
+        not running, while injected ``ResponseGenerator`` instances can stream
+        the real local model response in the Streamlit application.
+        """
         self.logger.debug("Generating LLM response")
-        
-        # Mock LLM response for now
-        await asyncio.sleep(0.2)  # Simulate LLM processing
-        
-        # Simple mock response based on query
+
+        if self.response_generator is not None and not self.use_mocks:
+            try:
+                answer = "".join(
+                    self.response_generator.generate_response(request.query, context)
+                ).strip()
+                if answer:
+                    return answer, 0.75
+            except Exception as error:
+                self.logger.warning(
+                    "Response generator unavailable; using deterministic fallback: %s",
+                    error,
+                )
+
+        await asyncio.sleep(0.2)  # Simulate local generation in test/demo mode
+
         if "capital" in request.query.lower() and "bank" in request.query.lower():
-            answer = "Based on the retrieved information, banks are required to maintain minimum capital ratios under regulatory frameworks like Basel III. The specific requirements depend on the jurisdiction and the bank's risk profile."
+            answer = (
+                "Based on the retrieved information, banks are required to maintain "
+                "minimum capital ratios under regulatory frameworks like Basel III. "
+                "The specific requirements depend on the jurisdiction and the bank's "
+                "risk profile."
+            )
             confidence = 0.88
         elif "subsidiary" in request.query.lower():
-            answer = "The retrieved information shows corporate subsidiary relationships in the financial sector. Specific ownership structures would require querying the knowledge graph for entity relationships."
+            answer = (
+                "The retrieved information shows corporate subsidiary relationships "
+                "in the financial sector. Specific ownership structures would require "
+                "querying the knowledge graph for entity relationships."
+            )
             confidence = 0.82
         else:
-            answer = "I've analyzed the retrieved information related to your query. The hybrid retrieval system found both structured graph data and unstructured document content relevant to your question."
+            answer = (
+                "I've analyzed the retrieved information related to your query. The "
+                "hybrid retrieval system found both structured graph data and "
+                "unstructured document content relevant to your question."
+            )
             confidence = 0.75
-        
-        self.logger.debug(f"Generated response with confidence {confidence:.2f}")
+
+        self.logger.debug("Generated response with confidence %.2f", confidence)
         return answer, confidence
     
     async def health_check(self) -> dict[str, str]:

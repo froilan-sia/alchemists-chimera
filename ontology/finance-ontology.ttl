@@ -235,17 +235,17 @@
     rdfs:label "Basel Committee on Banking Supervision" ;
     rdfs:comment "International committee of banking supervisors" .
 
-:HSBC a :Bank ;
+:HSBC a :Bank, :FinancialInstitution ;
     rdfs:label "HSBC Holdings plc" ;
     rdfs:comment "British multinational investment bank and financial services holding company" ;
     :regulatedBy :HKMA .
 
-:StandardChartered a :Bank ;
+:StandardChartered a :Bank, :FinancialInstitution ;
     rdfs:label "Standard Chartered Bank" ;
     rdfs:comment "British multinational bank with operations in Hong Kong" ;
     :regulatedBy :HKMA .
 
-:BankOfChinaHK a :Bank ;
+:BankOfChinaHK a :Bank, :FinancialInstitution ;
     rdfs:label "Bank of China (Hong Kong)" ;
     rdfs:comment "Hong Kong-incorporated bank and subsidiary of Bank of China" ;
     :regulatedBy :HKMA .
@@ -254,12 +254,16 @@
     rdfs:label "Basel III Framework" ;
     rdfs:comment "International regulatory framework for banks" ;
     :effectiveDate "2010-12-01"^^xsd:date ;
-    :appliesTo :Bank .
+    :minimumRequirement "8.0"^^xsd:decimal ;
+    :appliesTo :HSBC .
 
 :CapitalRequirementReg a :CapitalRequirement ;
     rdfs:label "Capital Requirements Regulation" ;
     rdfs:comment "Regulation specifying minimum capital requirements" ;
     :minimumRequirement "8.0"^^xsd:decimal .
+
+:HKMAFrameworkInstance a :HKMAFramework, :Regulation ;
+    rdfs:label "HKMA Regulatory Framework Instance" .
 
 :CET1Requirement a :CommonEquityTier1 ;
     rdfs:label "CET1 Minimum Requirement" ;
@@ -284,13 +288,17 @@
     rdfs:label "HSBC Tier 1 Ratio" ;
     :currentLevel "15.6"^^xsd:decimal .
 
-:HSBC_Leverage a :LeverageRatio ;
+:HSBC_Leverage a :LeverageRatio, :CapitalRatio ;
     rdfs:label "HSBC Leverage Ratio" ;
     :currentLevel "5.5"^^xsd:decimal .
 
 :StandardChartered_CET1 a :CommonEquityTier1 ;
     rdfs:label "Standard Chartered CET1 Ratio" ;
     :currentLevel "13.7"^^xsd:decimal .
+
+:BankOfChinaHK_CET1 a :CommonEquityTier1 ;
+    rdfs:label "Bank of China Hong Kong CET1 Ratio" ;
+    :currentLevel "13.0"^^xsd:decimal .
 
 :CapitalConservation a :ConservationBuffer ;
     rdfs:label "Capital Conservation Buffer" ;
@@ -301,7 +309,7 @@
 # Relationships between instances
 ###############################################################################
 
-:HSBC :subjectTo :BaselIIIFramework ;
+:HSBC :subjectTo :BaselIIIFramework, :CapitalRequirementReg ;
     :hasCapitalRatio :HSBC_CET1 ;
     :hasCapitalRatio :HSBC_Tier1 ;
     :hasCapitalRatio :HSBC_Leverage ;
@@ -309,16 +317,16 @@
     :hasRiskExposure :MarketRisk ;
     :hasRiskExposure :OperationalRisk .
 
-:StandardChartered :subjectTo :BaselIIIFramework ;
+:StandardChartered :subjectTo :BaselIIIFramework, :CapitalRequirementReg ;
     :hasCapitalRatio :StandardChartered_CET1 ;
     :hasRiskExposure :CreditRisk ;
     :hasRiskExposure :LiquidityRisk .
 
-:BankOfChinaHK :subjectTo :BaselIIIFramework ;
-    :subjectTo :HKMAFramework ;
+:BankOfChinaHK :subjectTo :BaselIIIFramework, :HKMAFrameworkInstance, :CapitalRequirementReg ;
+    :hasCapitalRatio :BankOfChinaHK_CET1 ;
     :hasRiskExposure :CreditRisk .
 
 :BaselIIIFramework :requiresApproval :BaselCommittee .
 
-:CapitalRequirementReg :appliesTo :Bank .
+:CapitalRequirementReg :appliesTo :HSBC .
 

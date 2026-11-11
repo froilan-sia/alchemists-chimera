@@ -21,16 +21,20 @@ Hugging Face Spaces free-tier constraints.
 import json
 import logging
 import time
+from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple, Set, Union
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 import re
+from collections import deque
 
 import requests
+from requests.adapters import HTTPAdapter
 from pydantic import BaseModel, Field, ValidationError
 from requests.exceptions import RequestException, Timeout
 
+from ..performance import FileContentCache
 from .pdf_parser import PDFChunk
 from .entity_extractor import ExtractedEntity
 
@@ -108,6 +112,16 @@ class TripleExtractorConfig(BaseModel):
         default="chimera:", 
         description="Prefix for extracted predicates in triples"
     )
+    ontology_path: str = Field(
+        default="./ontology/finance-ontology.ttl",
+        description="Ontology file used to guide extraction"
+    )
+    connection_pool_size: int = Field(
+        default=1,
+        ge=1,
+        le=4,
+        description="HTTP connections reserved for sequential Ollama inference"
+    )
 
 
 class ExtractionStatus(str, Enum):
@@ -181,6 +195,19 @@ class TripleExtractor:
         """
         self.config = config or TripleExtractorConfig()
         self.session = requests.Session()
+
+        # Reuse a bounded HTTP connection pool.  The pool is intentionally
+        # sized for sequential qwen2.5:3b inference, never parallel inference.
+        adapter = HTTPAdapter(
+            pool_connections=self.config.connection_pool_size,
+            pool_maxsize=self.config.connection_pool_size,
+            pool_block=True,
+        )
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+        self.ontology_content = self._load_ontology(self.config.ontology_path)
+        self.pending_extractions = deque()
+        self.last_error: Optional[str] = None
         
         # Configure session for better reliability
         self.session.headers.update({
@@ -190,6 +217,19 @@ class TripleExtractor:
         
         logger.info(f"Initialized TripleExtractor with config: {self.config}")
         logger.info(f"Using model: {self.config.model_name} at {self.config.ollama_base_url}")
+
+    @staticmethod
+    def _load_ontology(ontology_path: str) -> str:
+        """Load ontology text through the shared mtime-aware cache."""
+        path = Path(ontology_path)
+        if not path.exists():
+            logger.warning("Ontology file does not exist: %s", path)
+            return ""
+        try:
+            return FileContentCache.get_text(path)
+        except OSError as error:
+            logger.warning("Unable to load ontology %s: %s", path, error)
+            return ""
     
     def extract_triples_from_chunk(
         self, 
@@ -249,9 +289,14 @@ class TripleExtractor:
             logger.info(f"Extracted {len(triples)} triples from chunk {chunk.id} (status: {status})")
             return triples, status
             
+        except TripleExtractorError as error:
+            self.last_error = str(error)
+            self.queue_extraction(chunk, entities)
+            logger.error("Ollama unavailable for chunk %s; deferred extraction: %s", chunk.id, error)
+            return self._create_fallback_triples(chunk, entities), ExtractionStatus.FAILED
         except Exception as e:
-            logger.error(f"Failed to extract triples from chunk {chunk.id}: {e}")
-            
+            self.last_error = str(e)
+            logger.error("Failed to extract triples from chunk %s: %s", chunk.id, e, exc_info=True)
             # Create fallback triple if extraction fails completely
             fallback_triples = self._create_fallback_triples(chunk, entities)
             return fallback_triples, ExtractionStatus.FAILED
@@ -399,20 +444,24 @@ Extracted triples (JSON array):
                 if "response" not in data:
                     raise ValueError("Invalid response format from Ollama")
                 
-                logger.debug(f"Successfully received response from Ollama")
+                logger.debug("Successfully received response from Ollama")
+                self.last_error = None
                 return data
                 
-            except (RequestException, Timeout, ValueError) as e:
-                logger.warning(f"Ollama API call failed (attempt {attempt + 1}): {e}")
+            except Exception as e:
+                self.last_error = str(e)
+                logger.warning("Ollama API call failed (attempt %s/%s): %s", attempt + 1, self.config.max_retries + 1, e)
                 
                 if attempt < self.config.max_retries:
-                    # Exponential backoff
+                    # Exponential backoff: base, 2*base, 4*base, ...
                     delay = self.config.retry_delay_base * (2 ** attempt)
-                    logger.info(f"Retrying in {delay:.1f} seconds...")
+                    logger.info("Retrying Ollama request in %.1f seconds", delay)
                     time.sleep(delay)
                 else:
-                    logger.error(f"All {self.config.max_retries + 1} attempts failed")
-                    raise TripleExtractorError(f"Failed to call Ollama API after {self.config.max_retries + 1} attempts: {e}")
+                    logger.error("All %s Ollama attempts failed", self.config.max_retries + 1)
+                    raise TripleExtractorError(
+                        f"Failed to call Ollama API after {self.config.max_retries + 1} attempts: {e}"
+                    ) from e
     
     def _parse_and_validate_response(
         self, 
@@ -703,6 +752,36 @@ Extracted triples (JSON array):
         # Extract triples using the extracted entities
         return self.extract_triples_from_chunks(chunks, entities_by_chunk)
     
+    def queue_extraction(self, chunk: PDFChunk, entities: Optional[List[ExtractedEntity]] = None) -> None:
+        """Queue a chunk for retryable extraction when Ollama is unavailable."""
+        self.pending_extractions.append((chunk, entities or []))
+        logger.warning("Queued chunk %s for deferred Ollama extraction", chunk.id)
+
+    def process_pending_extractions(self) -> Dict[str, Tuple[List[ExtractedTriple], ExtractionStatus]]:
+        """Drain queued extraction work, retaining failures for a later retry."""
+        results: Dict[str, Tuple[List[ExtractedTriple], ExtractionStatus]] = {}
+        pending = list(self.pending_extractions)
+        self.pending_extractions.clear()
+        for chunk, entities in pending:
+            try:
+                results[chunk.id] = self.extract_triples_from_chunk(chunk, entities)
+            except TripleExtractorError:
+                self.pending_extractions.append((chunk, entities))
+                results[chunk.id] = ([], ExtractionStatus.FAILED)
+        return results
+
+    def health_check(self) -> Dict[str, Any]:
+        """Check Ollama reachability without raising into monitoring callers."""
+        healthy = self.test_ollama_connection()
+        return {
+            "status": "healthy" if healthy else "degraded",
+            "component": "triple_extractor",
+            "ollama_url": self.config.ollama_base_url,
+            "model": self.config.model_name,
+            "queued_extractions": len(self.pending_extractions),
+            "last_error": self.last_error,
+        }
+
     def test_ollama_connection(self) -> bool:
         """Test connection to Ollama API.
         

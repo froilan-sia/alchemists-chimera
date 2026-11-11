@@ -16,6 +16,9 @@ venv/
 chroma_db/
 *.sqlite3
 
+# Documentation build output
+site/
+
 # Mac
 .DS_Store
 

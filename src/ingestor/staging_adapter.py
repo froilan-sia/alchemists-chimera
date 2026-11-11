@@ -25,7 +25,10 @@ class CompatibleStagingManager:
         Args:
             staging_path: Path to staging data
         """
-        self.comprehensive_manager = StagingManager(staging_path)
+        self.comprehensive_manager = StagingManager(
+            staging_path,
+            require_human_approval=True,
+        )
         self.staging_path = staging_path
         self.staging_records: Dict[str, StagingRecord] = {}
         
@@ -43,12 +46,8 @@ class CompatibleStagingManager:
         # Convert StagingRecord to StagingTriple
         staging_triple = StagingTriple(record.triple)
         
-        # Set validation status from record
-        if record.validation_status == ValidationStatus.VALID:
-            staging_triple.approval_status = ApprovalDecision.APPROVED
-            staging_triple.reviewed_by = "auto_approval"
-            staging_triple.review_timestamp = datetime.now()
-        
+        # Valid candidates stay pending in compliance mode. The optional UI
+        # auto-approval action remains an explicit, attributed reviewer action.
         # Add to comprehensive manager
         record_id = self.comprehensive_manager.add_triple_for_staging(
             triple=staging_triple,

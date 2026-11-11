@@ -193,3 +193,105 @@ class ErrorResponse(BaseModel):
             }
         }
     )
+
+
+class DocumentUpload(BaseModel):
+    """Validated metadata for a PDF document submitted for ingestion."""
+
+    file_name: str = Field(..., min_length=1, description="Original PDF file name")
+    file_content: bytes = Field(..., description="PDF bytes supplied by the caller")
+    document_type: Optional[str] = Field(default=None, description="Optional document type")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional document metadata"
+    )
+
+
+class ExtractionStatus(BaseModel):
+    """Progress snapshot for one document ingestion operation."""
+
+    document_id: str = Field(..., min_length=1)
+    status: str = Field(..., min_length=1)
+    progress: float = Field(..., ge=0.0, le=1.0)
+    extracted_triples: int = Field(default=0, ge=0)
+    valid_triples: int = Field(default=0, ge=0)
+    quarantined_triples: int = Field(default=0, ge=0)
+
+
+class StagingTriple(BaseModel):
+    """Serializable triple contract exposed by the human-review workflow."""
+
+    id: str = Field(..., min_length=1)
+    subject: str = Field(..., min_length=1)
+    predicate: str = Field(..., min_length=1)
+    object: str = Field(..., min_length=1)
+    evidence_quote: str = Field(..., min_length=1)
+    shacl_status: str = Field(..., min_length=1)
+    validation_errors: Optional[List[str]] = None
+    source_document: str = Field(..., min_length=1)
+    page_number: int = Field(..., ge=1)
+    extraction_timestamp: datetime = Field(default_factory=datetime.now)
+
+
+class DocumentChunk(BaseModel):
+    """Canonical document chunk contract used across ingestion boundaries."""
+
+    chunk_id: str = Field(..., min_length=1)
+    content: str = Field(..., min_length=1)
+    document_name: str = Field(..., min_length=1)
+    page_number: int = Field(..., ge=1)
+    chunk_index: int = Field(..., ge=0)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class Entity(BaseModel):
+    """Canonical named-entity contract for extraction adapters."""
+
+    text: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    start_char: int = Field(..., ge=0)
+    end_char: int = Field(..., ge=0)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+
+
+class ExtractedTriple(BaseModel):
+    """Canonical extracted triple contract with source evidence and anchors."""
+
+    subject: str = Field(..., min_length=1)
+    predicate: str = Field(..., min_length=1)
+    object: str = Field(..., min_length=1)
+    evidence_quote: str = Field(..., min_length=1)
+    chunk_id: str = Field(..., min_length=1)
+    page_number: int = Field(..., ge=1)
+    extraction_timestamp: datetime = Field(default_factory=datetime.now)
+    entity_anchors: List[str] = Field(default_factory=list)
+
+
+class ProvenancedTriple(BaseModel):
+    """Canonical triple contract after provenance and validation enrichment."""
+
+    triple: ExtractedTriple
+    provenance_uri: str = Field(..., min_length=1)
+    source_document: str = Field(..., min_length=1)
+    extraction_method: str = Field(..., min_length=1)
+    validation_status: str = Field(..., min_length=1)
+    approval_history: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class ValidationResult(BaseModel):
+    """Structured validation result returned by a guardrail adapter."""
+
+    is_valid: bool
+    validation_errors: List[str] = Field(default_factory=list)
+    severity: str = Field(..., min_length=1)
+    suggested_fixes: Optional[List[str]] = None
+
+
+class ExtractionResult(BaseModel):
+    """Summary of a completed document extraction operation."""
+
+    chunks_processed: int = Field(..., ge=0)
+    triples_extracted: int = Field(..., ge=0)
+    valid_triples: int = Field(..., ge=0)
+    quarantined_triples: int = Field(..., ge=0)
+    processing_time: float = Field(default=0.0, ge=0.0)
+    errors: List[str] = Field(default_factory=list)

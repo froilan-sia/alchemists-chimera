@@ -24,6 +24,7 @@ except ImportError:
 from .triple_extractor import ExtractedTriple
 from .provenance_manager import ProvenanceManager
 from ..config import settings
+from ..performance import FileContentCache
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,8 @@ class SHACLValidator:
         """
         self.shapes_file = shapes_file
         self.base_uri = base_uri
+        self.last_error: Optional[str] = None
+        self.validation_errors = 0
         
         if not PYSHACL_AVAILABLE:
             logger.warning("pyshacl not installed, using basic validation only")
@@ -260,8 +263,10 @@ chimera:ShortEvidenceShape
             return conforms, messages
             
         except Exception as e:
-            logger.error(f"SHACL validation failed: {e}")
-            return False, [f"SHACL validation error: {str(e)}"]
+            self.last_error = str(e)
+            self.validation_errors += 1
+            logger.error("SHACL validation failed; quarantining candidate: %s", e, exc_info=True)
+            return False, [f"SHACL validation error: {e}"]
     
     def _triples_to_rdf(self, triples: List[ExtractedTriple]) -> str:
         """Convert triples to RDF graph in Turtle format.
@@ -311,10 +316,10 @@ chimera:ShortEvidenceShape
             Shapes graph in Turtle format
         """
         if self.shapes_file and self.shapes_file.exists():
-            with open(self.shapes_file, 'r', encoding='utf-8') as f:
-                return f.read()
-        else:
-            return self.default_shapes
+            # Shapes are immutable for the duration of a run in normal operation,
+            # but the cache is mtime-aware so ontology edits are picked up safely.
+            return FileContentCache.get_text(self.shapes_file)
+        return self.default_shapes
     
     def _parse_shacl_results(self, results_graph, conforms: bool) -> List[str]:
         """Parse SHACL validation results.
@@ -416,6 +421,10 @@ chimera:ShortEvidenceShape
         is_valid, messages = self.validate_triple(triple)
         
         if not is_valid:
+            # A validator/runtime failure is recoverable and must be held for
+            # review. Structural omissions remain invalid and cannot be approved.
+            if any(message.startswith("SHACL validation error:") for message in messages):
+                return "quarantined", messages + ["Validation could not complete; manual review required"]
             return "invalid", messages
         
         # Check for quarantine conditions
@@ -440,6 +449,26 @@ chimera:ShortEvidenceShape
         
         return "valid", messages
     
+    def health_check(self) -> Dict[str, Any]:
+        """Return validator availability and recent recovery information."""
+        return {
+            "status": "degraded" if self.last_error else "healthy",
+            "component": "shacl_validator",
+            "pyshacl_available": PYSHACL_AVAILABLE,
+            "shapes_file": str(self.shapes_file) if self.shapes_file else "default",
+            "validation_errors": self.validation_errors,
+            "last_error": self.last_error,
+        }
+
+    def validate(self, triple: ExtractedTriple) -> ValidationResult:
+        """Compatibility API returning a structured validation result."""
+        is_valid, messages = self.validate_triple(triple)
+        return ValidationResult(is_valid, messages)
+
+    def main_health_check(self) -> Dict[str, Any]:
+        """Alias used by component health aggregators."""
+        return self.health_check()
+
     def create_validation_report(self, triples: List[ExtractedTriple]) -> Dict[str, Any]:
         """Create a comprehensive validation report.
         

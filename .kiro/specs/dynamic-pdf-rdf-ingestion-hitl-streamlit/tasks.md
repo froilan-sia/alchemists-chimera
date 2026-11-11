@@ -86,7 +86,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
 
 ### Phase 1: Core Ingestion Engine Implementation
 
-- [ ] 1. Implement PDF Parser & Chunker (`src/ingestor/pdf_parser.py`)
+- [x] 1. Implement PDF Parser & Chunker (`src/ingestor/pdf_parser.py`)
   - **Description**: Create PDF parsing component using pypdf with configurable chunking
   - **Requirements**: 1.1, 1.2
   - **Design Reference**: Components and Interfaces - PDF Parser & Chunker
@@ -101,7 +101,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Property-based tests for chunk size consistency
     - Integration tests with sample PDFs
 
-- [ ] 2. Implement Entity Anchor Extractor (`src/ingestor/entity_extractor.py`)
+- [x] 2. Implement Entity Anchor Extractor (`src/ingestor/entity_extractor.py`)
   - **Description**: Create spaCy-based entity extractor for verified entity anchoring
   - **Requirements**: 1.3
   - **Design Reference**: Components and Interfaces - Entity Anchor Extractor
@@ -116,7 +116,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Property-based tests for entity type filtering
     - Performance tests for large text chunks
 
-- [ ] 3. Implement Triple Extractor (`src/ingestor/triple_extractor.py`)
+- [x] 3. Implement Triple Extractor (`src/ingestor/triple_extractor.py`)
   - **Description**: Create guided LLM component for RDF triple extraction
   - **Requirements**: 1.4, 1.5, 1.6
   - **Design Reference**: Components and Interfaces - Triple Extractor
@@ -132,7 +132,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Property-based tests for triple extraction completeness
     - Integration tests with Ollama service
 
-- [ ] 4. Implement Provenance Manager (`src/ingestor/provenance_manager.py`)
+- [x] 4. Implement Provenance Manager (`src/ingestor/provenance_manager.py`)
   - **Description**: Create component for tracking provenance metadata with URI normalization
   - **Requirements**: 1.7
   - **Design Reference**: Components and Interfaces - Provenance Manager
@@ -152,7 +152,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Integration tests with extraction pipeline
     - URI normalization tests: "Bank of America" → "chimera:Bank_of_America", "Basel III" → "chimera:Basel_III"
 
-- [ ] 5. Implement SHACL Validator (`src/ingestor/shacl_validator.py`)
+- [x] 5. Implement SHACL Validator (`src/ingestor/shacl_validator.py`)
   - **Description**: Create SHACL validation component with pyshacl
   - **Requirements**: 1.8, 1.9
   - **Design Reference**: Components and Interfaces - SHACL Validator
@@ -170,7 +170,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
 
 ### Phase 1a: Ingestion Pipeline Orchestrator
 
-- [ ] 5a. Implement Ingestion Pipeline Orchestrator (`src/ingestor/pipeline.py`)
+- [x] 5a. Implement Ingestion Pipeline Orchestrator (`src/ingestor/pipeline.py`)
   - **Description**: Create orchestrator that coordinates all 5 ingestor components with vector store integration
   - **Requirements**: Integration requirements from design.md
   - **Design Reference**: Components and Interfaces - Ingestion Pipeline
@@ -195,7 +195,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
 
 ### Phase 2: Staging & HITL Workflow Implementation
 
-- [ ] 6. Implement Staging Manager (`src/staging_manager.py`)
+- [x] 6. Implement Staging Manager (`src/staging_manager.py`)
   - **Description**: Create human-in-the-loop approval workflow manager with live reload functionality
   - **Requirements**: 2.1-2.8
   - **Design Reference**: Components and Interfaces - Staging Manager
@@ -223,7 +223,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Live reload tests: verify approved triples are immediately queryable
     - Concurrent modification tests
 
-- [ ] 7. Create Sample Data & Ontology Extensions
+- [x] 7. Create Sample Data & Ontology Extensions
   - **Description**: Prepare sample regulatory documents and extend ontology
   - **Requirements**: 2.7, 2.8
   - **Implementation Details**:
@@ -240,7 +240,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
 
 ### Phase 3: Streamlit Web UI Implementation
 
-- [ ] 8. Implement Streamlit Application (`app.py`)
+- [x] 8. Implement Streamlit Application (`app.py`)
   - **Description**: Create main Streamlit web interface
   - **Requirements**: 3.1-3.8
   - **Design Reference**: Components and Interfaces - Streamlit UI Components
@@ -257,7 +257,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Session state management tests
     - Responsive layout tests
 
-- [ ] 9. Implement Hybrid Chimera Chat Tab
+- [x] 9. Implement Hybrid Chimera Chat Tab
   - **Description**: Create query interface using existing hybrid retriever
   - **Requirements**: 3.2, 3.3
   - **Implementation Details**:
@@ -273,7 +273,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Visualization component tests
     - Performance tests for real-time updates
 
-- [ ] 10. Implement Surgeon's Table Tab (PDF Upload & HITL)
+- [x] 10. Implement Surgeon's Table Tab (PDF Upload & HITL)
   - **Description**: Create PDF upload and triple approval interface
   - **Requirements**: 3.4, 3.5, 3.8
   - **Implementation Details**:
@@ -289,7 +289,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Table editing functionality tests
     - Bulk operation tests
 
-- [ ] 11. Implement Live Knowledge Graph Explorer Tab
+- [x] 11. Implement Live Knowledge Graph Explorer Tab
   - **Description**: Create interactive KG visualization interface
   - **Requirements**: 3.6, 3.7
   - **Implementation Details**:
@@ -307,7 +307,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
 
 ### Phase 4: Deployment & Infrastructure
 
-- [ ] 12. Update Docker Configuration
+- [x] 12. Update Docker Configuration
   - **Description**: Modify Dockerfile for Hugging Face Spaces deployment
   - **Requirements**: 4.1-4.8
   - **Implementation Details**:
@@ -329,7 +329,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Container runtime tests
     - Port exposure tests
 
-- [ ] 13. Create Start Script (`start.sh`)
+- [x] 13. Create Start Script (`start.sh`)
   - **Description**: Create startup script for Hugging Face Spaces
   - **Requirements**: 4.3, 4.4
   - **Implementation Details**:
@@ -352,7 +352,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Service startup tests
     - Error handling tests
 
-- [ ] 14. Update Documentation
+- [x] 14. Update Documentation
   - **Description**: Update README and add deployment instructions
   - **Requirements**: 4.5, 4.6, 5.6, 5.7, 5.8
   - **Implementation Details**:
@@ -370,7 +370,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
 
 ### Phase 5: HKMA Compliance & Testing
 
-- [ ] 15. Implement Compliance Features
+- [x] 15. Implement Compliance Features
   - **Description**: Add HKMA GenAI Sandbox and ART Framework compliance
   - **Requirements**: 5.1-5.8
   - **Implementation Details**:
@@ -387,7 +387,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Guardrail effectiveness tests
     - Audit trail completeness tests
 
-- [ ] 16. Create Comprehensive Test Suite
+- [x] 16. Create Comprehensive Test Suite
   - **Description**: Implement all required tests for new components
   - **Requirements**: 6.1-6.8
   - **Implementation Details**:
@@ -404,7 +404,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Coverage reporting
     - Kiro hook validation
 
-- [ ] 17. Implement Performance Optimization
+- [x] 17. Implement Performance Optimization
   - **Description**: Optimize system for production use
   - **Requirements**: 7.1-7.8
   - **Implementation Details**:
@@ -421,7 +421,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Memory usage profiling
     - Concurrent operation tests
 
-- [ ] 18. Implement Error Handling & Resilience
+- [x] 18. Implement Error Handling & Resilience
   - **Description**: Add comprehensive error handling and recovery
   - **Requirements**: 8.1-8.8
   - **Implementation Details**:
@@ -440,7 +440,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
 
 ### Phase 6: Kiro Integration & Finalization
 
-- [ ] 19. Integrate with Kiro Workflow
+- [x] 19. Integrate with Kiro Workflow
   - **Description**: Ensure full Kiro integration and compliance
   - **Requirements**: 6.1-6.8
   - **Implementation Details**:
@@ -456,8 +456,15 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Kiro hook execution tests
     - Code style compliance tests
     - Interface compatibility tests
+  - **Implementation Progress**:
+    - Added portable Kiro hook runners for tests, linting, and ontology validation.
+    - Removed the ontology hook's unsupported `--verbose` flag and implicit package installation.
+    - Added canonical Pydantic ingestion contracts to `src/models.py` while preserving the existing runtime ingestor interfaces.
+    - Added focused hook execution, style, and model compatibility tests in `tests/test_task19_kiro_workflow.py`.
+    - Documented the Kiro-assisted workflow in `docs/kiro_usage.md` and linked it from the documentation navigation.
+    - The full repository hook remains an environment-wide quality gate. Existing end-to-end retrieval and legacy formatting issues are reported separately rather than changed as part of Task 19.
 
-- [ ] 20. Final Integration & Validation
+- [x] 20. Final Integration & Validation
   - **Description**: Complete end-to-end integration and validation
   - **Implementation Details**:
     - Run full test suite including new and existing tests

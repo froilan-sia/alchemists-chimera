@@ -1,0 +1,144 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "9. Implement Hybrid Chimera Chat Tab": [
+      {
+        "executionId": "b3855e1a-fca5-49b6-8e2e-af2a93181915",
+        "chatSessionId": "sess_036e1e0b-ad4d-40b5-bf83-eeef3924e93c",
+        "timestamp": 1794407488072
+      },
+      {
+        "executionId": "b3855e1a-fca5-49b6-8e2e-af2a93181915",
+        "chatSessionId": "sess_036e1e0b-ad4d-40b5-bf83-eeef3924e93c",
+        "timestamp": 1794407884425
+      }
+    ],
+    "10. Implement Surgeon's Table Tab (PDF Upload & HITL)": [
+      {
+        "executionId": "c8269fb3-c9c3-4e8d-afe6-51c07b83e8a1",
+        "chatSessionId": "sess_25d10a0d-c435-4a21-92d4-85397bb80a31",
+        "timestamp": 1794407928212
+      },
+      {
+        "executionId": "c8269fb3-c9c3-4e8d-afe6-51c07b83e8a1",
+        "chatSessionId": "sess_25d10a0d-c435-4a21-92d4-85397bb80a31",
+        "timestamp": 1794408308141
+      }
+    ],
+    "11. Implement Live Knowledge Graph Explorer Tab": [
+      {
+        "executionId": "609152d8-5116-44c0-8873-ab2b3ef63e53",
+        "chatSessionId": "sess_761134a3-1cf5-402f-a808-03e20dbb8d24",
+        "timestamp": 1794408373362
+      },
+      {
+        "executionId": "609152d8-5116-44c0-8873-ab2b3ef63e53",
+        "chatSessionId": "sess_761134a3-1cf5-402f-a808-03e20dbb8d24",
+        "timestamp": 1794408843746
+      }
+    ],
+    "12. Update Docker Configuration": [
+      {
+        "executionId": "80af5528-1914-49e6-916e-b82ab0d999ca",
+        "chatSessionId": "sess_32c49072-b13a-43b9-a1c6-94467a2c113b",
+        "timestamp": 1794408870468
+      },
+      {
+        "executionId": "80af5528-1914-49e6-916e-b82ab0d999ca",
+        "chatSessionId": "sess_32c49072-b13a-43b9-a1c6-94467a2c113b",
+        "timestamp": 1794409525420
+      }
+    ],
+    "13. Create Start Script (`start.sh`)": [
+      {
+        "executionId": "29eeac48-4065-44b9-ac97-652a800fe1b6",
+        "chatSessionId": "sess_96a3b169-ff6d-441f-87cd-570d5d500a18",
+        "timestamp": 1794409599905
+      },
+      {
+        "executionId": "29eeac48-4065-44b9-ac97-652a800fe1b6",
+        "chatSessionId": "sess_96a3b169-ff6d-441f-87cd-570d5d500a18",
+        "timestamp": 1794410059183
+      }
+    ],
+    "14. Update Documentation": [
+      {
+        "executionId": "42f9e22b-d0e1-461c-bd6b-cfb7a23615ca",
+        "chatSessionId": "sess_28f2e4d0-0e9f-478a-bedc-540e1fc0c006",
+        "timestamp": 1794410091600
+      },
+      {
+        "executionId": "42f9e22b-d0e1-461c-bd6b-cfb7a23615ca",
+        "chatSessionId": "sess_28f2e4d0-0e9f-478a-bedc-540e1fc0c006",
+        "timestamp": 1794410593530
+      }
+    ],
+    "15. Implement Compliance Features": [
+      {
+        "executionId": "d2b471d4-5f97-432f-9f36-39af8e51ff44",
+        "chatSessionId": "sess_865d7a50-90fb-48f9-b1fa-349a63bc27ec",
+        "timestamp": 1794410696914
+      },
+      {
+        "executionId": "d2b471d4-5f97-432f-9f36-39af8e51ff44",
+        "chatSessionId": "sess_865d7a50-90fb-48f9-b1fa-349a63bc27ec",
+        "timestamp": 1794411203384
+      }
+    ],
+    "16. Create Comprehensive Test Suite": [
+      {
+        "executionId": "b678d5ea-cd5d-4e2e-ad78-4e326d30e971",
+        "chatSessionId": "sess_3a2aed37-dd06-4ce7-a350-de210d7003c0",
+        "timestamp": 1794411713448
+      },
+      {
+        "executionId": "b678d5ea-cd5d-4e2e-ad78-4e326d30e971",
+        "chatSessionId": "sess_3a2aed37-dd06-4ce7-a350-de210d7003c0",
+        "timestamp": 1794413315273
+      }
+    ],
+    "17. Implement Performance Optimization": [
+      {
+        "executionId": "152d1e7f-5fd8-41e2-8f8b-06e3c4b9c7a8",
+        "chatSessionId": "sess_6e42b53c-d61b-4c73-95ac-5f3e476e378e",
+        "timestamp": 1794413421076
+      },
+      {
+        "executionId": "152d1e7f-5fd8-41e2-8f8b-06e3c4b9c7a8",
+        "chatSessionId": "sess_6e42b53c-d61b-4c73-95ac-5f3e476e378e",
+        "timestamp": 1794413979965
+      }
+    ],
+    "18. Implement Error Handling & Resilience": [
+      {
+        "executionId": "c86818c6-f4be-4d1a-a4f1-605c87106c32",
+        "chatSessionId": "sess_3effeeab-c64c-47e3-9210-db8b2e9e6e82",
+        "timestamp": 1794414108906
+      },
+      {
+        "executionId": "c86818c6-f4be-4d1a-a4f1-605c87106c32",
+        "chatSessionId": "sess_3effeeab-c64c-47e3-9210-db8b2e9e6e82",
+        "timestamp": 1794414743552
+      }
+    ],
+    "19. Integrate with Kiro Workflow": [
+      {
+        "executionId": "16b19d98-27e3-43bd-9219-ccd9a8edfad7",
+        "chatSessionId": "sess_11bf0c2e-6c07-4844-9e3c-453e13b1c4db",
+        "timestamp": 1794414934789
+      }
+    ],
+    "20. Final Integration & Validation": [
+      {
+        "executionId": "3a40319e-de2d-44c3-8e7e-c11ef0872f6b",
+        "chatSessionId": "sess_500e8adb-555d-4694-b681-415f1c701e8b",
+        "timestamp": 1794416277732
+      },
+      {
+        "executionId": "3a40319e-de2d-44c3-8e7e-c11ef0872f6b",
+        "chatSessionId": "sess_500e8adb-555d-4694-b681-415f1c701e8b",
+        "timestamp": 1794417711570
+      }
+    ]
+  }
+}

@@ -8,7 +8,7 @@
       "matcher": ".*\\.py$",
       "action": {
         "type": "command",
-        "command": "cd /Users/froilansia/git/alchemists-chimera && python -m black --check . && python -m isort --check-only . && python -m flake8 .",
+        "command": "bash \"${KIRO_WORKSPACE_ROOT:-.}/.kiro/hooks/lint_code.sh\" .",
         "timeout": 60
       }
     }

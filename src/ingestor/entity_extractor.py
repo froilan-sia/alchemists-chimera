@@ -131,6 +131,15 @@ class EntityExtractor:
             logger.error(f"Failed to load spaCy model {self.config.model_name}: {e}")
             raise EntityExtractorError(f"Failed to load spaCy model {self.config.model_name}: {e}")
     
+    def health_check(self) -> Dict[str, Any]:
+        """Return extractor readiness without raising monitoring errors."""
+        return {
+            "status": "healthy" if self.nlp is not None else "unhealthy",
+            "component": "entity_extractor",
+            "model": self.config.model_name,
+            "entity_types": list(self.config.entity_types),
+        }
+
     def extract_entities(self, text: str, chunk_id: Optional[str] = None) -> List[ExtractedEntity]:
         """Extract entities from text.
         

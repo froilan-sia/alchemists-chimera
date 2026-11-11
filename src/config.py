@@ -93,7 +93,51 @@ class Settings(BaseSettings):
         default=300,
         description="Cache time-to-live in seconds"
     )
-    
+
+    # Ingestion performance configuration
+    ingestion_batch_size: int = Field(
+        default=8,
+        ge=1,
+        le=256,
+        description="Number of PDF chunks processed per bounded batch"
+    )
+    ingestion_max_workers: int = Field(
+        default=2,
+        ge=1,
+        le=16,
+        description="Workers for CPU-bound preprocessing only"
+    )
+    ingestion_chunk_timeout_seconds: float = Field(
+        default=120.0,
+        gt=0,
+        le=1800,
+        description="Maximum time allowed for one chunk's non-LLM processing"
+    )
+    ingestion_pdf_timeout_seconds: float = Field(
+        default=300.0,
+        gt=0,
+        le=7200,
+        description="Maximum wall-clock time for one PDF"
+    )
+    ingestion_memory_limit_mb: int = Field(
+        default=2048,
+        ge=128,
+        le=65536,
+        description="Best-effort process memory limit for PDF ingestion"
+    )
+    ingestion_max_chunks: int = Field(
+        default=10000,
+        ge=1,
+        le=1000000,
+        description="Maximum chunks accepted from one PDF"
+    )
+    database_pool_size: int = Field(
+        default=4,
+        ge=1,
+        le=64,
+        description="Maximum concurrent persistent-store operations"
+    )
+
     # API configuration
     api_host: str = Field(default="0.0.0.0", description="API host")
     api_port: int = Field(default=8000, description="API port")

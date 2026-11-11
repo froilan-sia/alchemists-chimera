@@ -1,0 +1,23 @@
+site_name: The Alchemist's Chimera
+site_description: Local-first hybrid graph-vector retrieval with PDF ingestion and HITL staging
+site_url: https://github.com/froilan-sia/alchemists-chimera
+repo_url: https://github.com/froilan-sia/alchemists-chimera
+repo_name: froilan-sia/alchemists-chimera
+docs_dir: docs
+site_dir: site
+theme:
+  name: material
+  language: en
+nav:
+  - Home: index.md
+  - User guide: user-guide.md
+  - API reference: api.md
+  - Compliance controls: compliance.md
+  - Final validation: final-validation.md
+  - Troubleshooting: troubleshooting.md
+  - Kiro-assisted development: kiro_usage.md
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true

@@ -17,6 +17,13 @@ from .models import QueryRequest, RetrievalResult, HybridResponse, RetrievalSour
 from .graph_store import GraphStore, get_graph_store
 from .vector_store import VectorStore, get_vector_store
 from .fusion import FusionEngine, FusionConfig, get_fusion_engine
+from .compliance import (
+    AirGapVerifier,
+    ComplianceAuditTrail,
+    DeterministicGuardrails,
+    RetrievalTransparency,
+    SurgeonsTableWorkflow,
+)
 
 __all__ = [
     "HybridRouter",
@@ -33,4 +40,9 @@ __all__ = [
     "FusionEngine",
     "FusionConfig",
     "get_fusion_engine",
+    "AirGapVerifier",
+    "ComplianceAuditTrail",
+    "DeterministicGuardrails",
+    "RetrievalTransparency",
+    "SurgeonsTableWorkflow",
 ]

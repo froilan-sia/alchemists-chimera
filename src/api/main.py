@@ -41,6 +41,7 @@ app.add_middleware(
 
 # Global retriever instance (will be initialized in startup)
 retriever = None
+ingestion_pipeline = None
 
 
 @app.on_event("startup")
@@ -94,36 +95,51 @@ async def root() -> Dict[str, Any]:
 
 @app.get("/health", response_model=HealthStatus, tags=["Monitoring"])
 async def health_check() -> HealthStatus:
-    """Health check endpoint."""
-    components = {}
-    
-    # Check graph store
+    """Report the health of API, retrieval, and ingestion components."""
+    components: Dict[str, str] = {}
+
+    def component_status(name: str, component: Any) -> None:
+        try:
+            if component is None:
+                components[name] = "not_initialized"
+            elif hasattr(component, "health_check"):
+                result = component.health_check()
+                components[name] = result.get("status", "healthy") if isinstance(result, dict) else str(result)
+            else:
+                components[name] = "initialized"
+        except Exception as error:
+            logger.error("Health check failed for %s: %s", name, error, exc_info=True)
+            components[name] = f"unhealthy: {error}"
+
+    component_status("retriever", retriever)
+    component_status("ingestion_pipeline", ingestion_pipeline)
+    for name in ("pdf_parser", "entity_extractor", "triple_extractor", "shacl_validator", "staging_manager"):
+        component_status(name, getattr(ingestion_pipeline, name, None) if ingestion_pipeline else None)
+
     try:
-        # Simplified check - will be implemented with actual component
-        components["graph_store"] = "healthy"
-    except Exception as e:
-        components["graph_store"] = f"unhealthy: {str(e)}"
-    
-    # Check vector store
+        from ..graph_store import get_graph_store
+        component_status("graph_store", get_graph_store())
+    except Exception as error:
+        components["graph_store"] = f"unhealthy: {error}"
     try:
-        components["vector_store"] = "healthy"
-    except Exception as e:
-        components["vector_store"] = f"unhealthy: {str(e)}"
-    
-    # Check LLM
-    try:
-        components["llm"] = "healthy"
-    except Exception as e:
-        components["llm"] = f"unhealthy: {str(e)}"
-    
-    # Overall status
-    overall_status = "healthy" if all("healthy" in v for v in components.values()) else "degraded"
-    
-    return HealthStatus(
-        status=overall_status,
-        version=__version__,
-        components=components,
-    )
+        from ..vector_store import get_vector_store
+        component_status("vector_store", get_vector_store())
+    except Exception as error:
+        components["vector_store"] = f"unhealthy: {error}"
+    component_status("llm", getattr(retriever, "response_generator", None))
+
+    healthy_values = {"healthy", "initialized"}
+    overall_status = "healthy" if all(value in healthy_values for value in components.values()) else "degraded"
+    return HealthStatus(status=overall_status, version=__version__, components=components)
+
+
+@app.get("/health/{component_name}", tags=["Monitoring"])
+async def component_health_check(component_name: str) -> Dict[str, Any]:
+    """Return detailed health for a named component."""
+    response = await health_check()
+    if component_name not in response.components:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown component")
+    return {"component": component_name, "status": response.components[component_name]}
 
 
 @app.post("/query", response_model=HybridResponse, tags=["Query"])

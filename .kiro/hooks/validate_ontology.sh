@@ -5,21 +5,33 @@
 # Trigger: PostFileSave on .ttl files
 # Kiroween Hackathon Feature Demonstration
 
-set -e
+set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPOSITORY_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
+cd "$REPOSITORY_ROOT"
+
+SOURCE_FILE="${1:-${KIRO_FILE_PATH:-unknown}}"
 echo "🔍 Validating ontology changes..."
 echo "Timestamp: $(date)"
-echo "File: $1"
+echo "File: $SOURCE_FILE"
 
-# Check if pyshacl is available
-if ! command -v pyshacl &> /dev/null; then
-    echo "⚠️  pyshacl not found. Installing..."
-    pip install pyshacl
+# Prefer the repository environment, then a configured command, then PATH.
+# Hooks must not install packages or mutate the user's environment implicitly.
+if [[ -n "${KIRO_PYSHACL_BIN:-}" ]]; then
+    PYSHACL_BIN=("$KIRO_PYSHACL_BIN")
+elif [[ -x "$REPOSITORY_ROOT/venv/bin/pyshacl" ]]; then
+    PYSHACL_BIN=("$REPOSITORY_ROOT/venv/bin/pyshacl")
+elif command -v pyshacl >/dev/null 2>&1; then
+    PYSHACL_BIN=("$(command -v pyshacl)")
+else
+    echo "❌ pyshacl is unavailable. Install project requirements before running this hook." >&2
+    exit 127
 fi
 
-# Define paths
-ONTOLOGY_PATH="ontology/finance-ontology.ttl"
-SHAPES_PATH="ontology/shapes.ttl"
+# Define paths relative to the repository, not the caller's working directory.
+ONTOLOGY_PATH="$REPOSITORY_ROOT/ontology/finance-ontology.ttl"
+SHAPES_PATH="$REPOSITORY_ROOT/ontology/shapes.ttl"
 
 # Check if files exist
 if [ ! -f "$ONTOLOGY_PATH" ]; then
@@ -112,7 +124,7 @@ echo "Ontology: $ONTOLOGY_PATH"
 echo "Shapes: $SHAPES_PATH"
 
 # Run pyshacl with detailed output
-if pyshacl "$ONTOLOGY_PATH" -s "$SHAPES_PATH" --verbose; then
+if "${PYSHACL_BIN[@]}" "$ONTOLOGY_PATH" -s "$SHAPES_PATH"; then
     echo "✅ Ontology validation passed!"
     echo "📊 Validation Summary:"
     echo "  - Ontology file: $ONTOLOGY_PATH"
@@ -149,7 +161,7 @@ else
     
     # Provide troubleshooting tips
     echo "💡 Troubleshooting tips:"
-    echo "  - Run: pyshacl $ONTOLOGY_PATH -s $SHAPES_PATH --verbose"
+    echo "  - Run: pyshacl \"$ONTOLOGY_PATH\" -s \"$SHAPES_PATH\""
     echo "  - Check for syntax errors: rapper -i turtle -o ntriples $ONTOLOGY_PATH"
     echo "  - Validate with: owl2vowl -file $ONTOLOGY_PATH"
     

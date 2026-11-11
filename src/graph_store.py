@@ -39,13 +39,19 @@ class GraphStore:
         self.graph.bind("rdf", RDF)
         self.graph.bind("rdfs", RDFS)
         
+        # The seeded approved graph is part of the local demo dataset. Load it
+        # alongside the ontology so the default router has queryable facts.
+        self.approved_kg_path = (
+            Path(__file__).resolve().parents[1] / "data" / "graphs" / "approved_kg.ttl"
+        )
+
         # Track if graph has been loaded
         self._loaded = False
         
         self.logger.info("GraphStore initialized")
     
     def load_ontology(self) -> bool:
-        """Load ontology from file or create default."""
+        """Load the ontology and the local approved knowledge graph."""
         try:
             # Check if file exists
             ontology_file = Path(self.ontology_path)
@@ -54,12 +60,20 @@ class GraphStore:
                 # Load existing ontology
                 self.graph.parse(self.ontology_path, format="turtle")
                 self.logger.info(f"Loaded ontology from {self.ontology_path}")
-                self.logger.info(f"Graph contains {len(self.graph)} triples")
             else:
                 # Create default ontology structure
                 self.logger.info("Creating default ontology structure")
                 self._create_default_ontology()
-            
+
+            # The ontology provides schemas while the approved graph provides
+            # reviewed sample facts used by the chat and explorer. Avoid
+            # parsing twice when a caller explicitly supplies that same file.
+            approved_path = self.approved_kg_path.resolve()
+            if ontology_file.resolve() != approved_path and approved_path.exists():
+                self.graph.parse(approved_path, format="turtle")
+                self.logger.info("Loaded approved knowledge graph from %s", approved_path)
+
+            self.logger.info(f"Graph contains {len(self.graph)} triples")
             self._loaded = True
             return True
             
@@ -146,20 +160,38 @@ class GraphStore:
             for i, row in enumerate(result_bindings):
                 # Format result content
                 content = self._format_result(row)
-                
+                row_metadata = {
+                    str(variable): str(row[variable])
+                    for variable in result_bindings.vars
+                    if row[variable] is not None
+                }
+                metadata = {
+                    "type": "graph_query",
+                    "result_index": i,
+                    "query_type": "sparql",
+                }
+                if row_metadata.get("sourceDocument"):
+                    metadata["source_document"] = row_metadata["sourceDocument"]
+                if row_metadata.get("sourceChunk"):
+                    metadata["chunk_id"] = row_metadata["sourceChunk"]
+                if row_metadata.get("pageNumber"):
+                    metadata["page_number"] = row_metadata["pageNumber"]
+
+                entity_links = []
+                for variable in ("entity", "subject", "provenance"):
+                    if row_metadata.get(variable):
+                        entity_links.append(row_metadata[variable])
+
                 # Calculate score (simplified)
                 score = max(0.5, 1.0 - (i * 0.05))
-                
+
                 # Create retrieval result
                 result = RetrievalResult(
                     content=content,
                     source=RetrievalSource.GRAPH,
                     score=score,
-                    metadata={
-                        "type": "graph_query",
-                        "result_index": i,
-                        "query_type": "sparql"
-                    }
+                    metadata=metadata,
+                    entity_links=entity_links or None,
                 )
                 
                 results.append(result)
@@ -175,26 +207,51 @@ class GraphStore:
             return []
     
     def retrieve_by_entity(self, entity_name: str, max_results: int = 10) -> List[RetrievalResult]:
-        """Retrieve information about a specific entity."""
+        """Retrieve facts matching meaningful terms in an entity or query."""
         try:
             if not self._loaded:
                 self.load_ontology()
-            
-            # Create SPARQL query for entity
+
+            # Natural-language queries rarely equal an RDF label. Search
+            # meaningful terms across labels and comments while ignoring
+            # question stop words, so seeded facts remain discoverable.
+            stop_words = {
+                "what", "when", "where", "which", "who", "does", "are",
+                "the", "and", "for", "under", "with", "from", "about",
+                "into", "that", "this", "have", "has", "must", "their",
+            }
+            terms = []
+            for raw_term in entity_name.lower().replace("?", " ").split():
+                term = "".join(character for character in raw_term if character.isalnum())
+                if len(term) >= 3 and term not in stop_words and term not in terms:
+                    terms.append(term)
+
+            if not terms:
+                return []
+
+            filters = " || ".join(
+                f'(contains(lcase(str(?label)), "{term}") '
+                f'|| contains(lcase(str(?description)), "{term}"))'
+                for term in terms
+            )
             query = f"""
-                PREFIX ex: <http://example.org/finance#>
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                
-                SELECT ?entity ?label ?type ?description
+                PREFIX chimera: <http://example.org/chimera#>
+
+                SELECT DISTINCT ?entity ?label ?type ?description ?sourceDocument
+                    ?sourceChunk ?pageNumber
                 WHERE {{
                     ?entity rdfs:label ?label .
-                    FILTER (contains(lcase(?label), "{entity_name.lower()}"))
                     OPTIONAL {{ ?entity a ?type }}
                     OPTIONAL {{ ?entity rdfs:comment ?description }}
+                    OPTIONAL {{ ?entity chimera:sourceDocument ?sourceDocument }}
+                    OPTIONAL {{ ?entity chimera:sourceChunk ?sourceChunk }}
+                    OPTIONAL {{ ?entity chimera:pageNumber ?pageNumber }}
+                    FILTER ({filters})
                 }}
                 LIMIT {max_results}
             """
-            
+
             return self.retrieve(query, max_results)
             
         except Exception as e:
