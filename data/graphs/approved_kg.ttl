@@ -1,0 +1,296 @@
+@prefix : <http://example.org/finance#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix chimera: <http://example.org/chimera#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+###############################################################################
+# Approved Knowledge Graph for HKMA/Basel III Regulatory Framework
+# This file contains validated triples that have passed HITL approval
+###############################################################################
+
+:HKMA_Provenance a prov:Entity ;
+    rdfs:label "HKMA Regulatory Framework Provenance" ;
+    dc:description "Provenance information for HKMA regulatory knowledge" ;
+    chimera:sourceDocument "HKMA_Supervisory_Policy_Manual_SA-2.pdf" ;
+    chimera:extractionTimestamp "2024-11-11T09:30:00Z"^^xsd:dateTime ;
+    chimera:extractorVersion "chimera-ingestor-v1.0" ;
+    chimera:validationStatus "VALID" ;
+    chimera:approvedBy "Compliance_Officer_Demo" ;
+    chimera:approvalTimestamp "2024-11-11T10:15:00Z"^^xsd:dateTime ;
+    chimera:approvalNotes "Verified against HKMA Supervisory Policy Manual SA-2" .
+
+:BaselIII_Provenance a prov:Entity ;
+    rdfs:label "Basel III Framework Provenance" ;
+    dc:description "Provenance information for Basel III regulatory knowledge" ;
+    chimera:sourceDocument "BCBS_Basel_III_Framework.pdf" ;
+    chimera:extractionTimestamp "2024-11-11T09:45:00Z"^^xsd:dateTime ;
+    chimera:extractorVersion "chimera-ingestor-v1.0" ;
+    chimera:validationStatus "VALID" ;
+    chimera:approvedBy "Risk_Auditor" ;
+    chimera:approvalTimestamp "2024-11-11T10:30:00Z"^^xsd:dateTime ;
+    chimera:approvalNotes "Cross-referenced with Basel Committee publications" .
+
+###############################################################################
+# HKMA Regulatory Framework (From HKMA Supervisory Policy Manual)
+###############################################################################
+
+:HKMA_Capital_Adequacy a :CapitalRequirement ;
+    rdfs:label "HKMA Capital Adequacy Requirements" ;
+    rdfs:comment "HKMA's minimum capital requirements for authorized institutions in Hong Kong" ;
+    :minimumRequirement "8.0"^^xsd:decimal ;
+    :effectiveDate "2013-01-01"^^xsd:date ;
+    chimera:hasEvidence "HKMA requires all authorized institutions to maintain a minimum capital adequacy ratio of 8% of their risk-weighted assets." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "HKMA_SPM_SA-2_Chunk_001" ;
+    chimera:pageNumber 1 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:HKMA_LCR a :Regulation ;
+    rdfs:label "HKMA Liquidity Coverage Ratio" ;
+    rdfs:comment "HKMA's Liquidity Coverage Ratio requirement for banks" ;
+    :minimumRequirement "100.0"^^xsd:decimal ;
+    :effectiveDate "2015-01-01"^^xsd:date ;
+    chimera:hasEvidence "The HKMA requires banks to maintain a Liquidity Coverage Ratio of at least 100%." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "HKMA_SPM_SA-2_Chunk_015" ;
+    chimera:pageNumber 15 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:HKMA_NSFR a :Regulation ;
+    rdfs:label "HKMA Net Stable Funding Ratio" ;
+    rdfs:comment "HKMA's Net Stable Funding Ratio requirement" ;
+    :minimumRequirement "100.0"^^xsd:decimal ;
+    :effectiveDate "2018-01-01"^^xsd:date ;
+    chimera:hasEvidence "Banks must maintain a Net Stable Funding Ratio of at least 100% under HKMA rules." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "HKMA_SPM_SA-2_Chunk_018" ;
+    chimera:pageNumber 18 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:HKMA_Stress_Testing a :StressTest ;
+    rdfs:label "HKMA Stress Testing Requirements" ;
+    rdfs:comment "HKMA's supervisory stress testing framework for banks" ;
+    chimera:hasEvidence "The HKMA requires banks to conduct annual stress tests covering credit, market, and liquidity risks." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "HKMA_SPM_SA-2_Chunk_022" ;
+    chimera:pageNumber 22 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:HKMA_Reporting a :ReportingRequirement ;
+    rdfs:label "HKMA Regulatory Reporting" ;
+    rdfs:comment "HKMA's regulatory reporting requirements for capital and liquidity" ;
+    :reportingFrequency "Monthly" ;
+    chimera:hasEvidence "Banks must submit monthly returns to HKMA covering capital adequacy and liquidity positions." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "HKMA_SPM_SA-2_Chunk_025" ;
+    chimera:pageNumber 25 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+###############################################################################
+# Basel III Framework (From Basel Committee Documents)
+###############################################################################
+
+:BaselIII_CET1 a :CommonEquityTier1 ;
+    rdfs:label "Basel III CET1 Minimum" ;
+    rdfs:comment "Basel III minimum Common Equity Tier 1 capital requirement" ;
+    :currentLevel "4.5"^^xsd:decimal ;
+    :effectiveDate "2013-01-01"^^xsd:date ;
+    chimera:hasEvidence "Basel III requires banks to maintain a minimum Common Equity Tier 1 capital ratio of 4.5% of risk-weighted assets." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "BCBS_Basel_III_Chunk_003" ;
+    chimera:pageNumber 3 ;
+    prov:wasGeneratedBy :BaselIII_Provenance .
+
+:BaselIII_Tier1 a :Tier1Capital ;
+    rdfs:label "Basel III Tier 1 Capital Minimum" ;
+    rdfs:comment "Basel III minimum Tier 1 capital requirement" ;
+    :currentLevel "6.0"^^xsd:decimal ;
+    chimera:hasEvidence "The minimum Tier 1 capital requirement under Basel III is 6% of risk-weighted assets." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "BCBS_Basel_III_Chunk_005" ;
+    chimera:pageNumber 5 ;
+    prov:wasGeneratedBy :BaselIII_Provenance .
+
+:BaselIII_TotalCapital a :CapitalRequirement ;
+    rdfs:label "Basel III Total Capital Minimum" ;
+    rdfs:comment "Basel III minimum total capital requirement" ;
+    :minimumRequirement "8.0"^^xsd:decimal ;
+    chimera:hasEvidence "Basel III sets the minimum total capital requirement at 8% of risk-weighted assets." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "BCBS_Basel_III_Chunk_007" ;
+    chimera:pageNumber 7 ;
+    prov:wasGeneratedBy :BaselIII_Provenance .
+
+:BaselIII_ConservationBuffer a :ConservationBuffer ;
+    rdfs:label "Basel III Capital Conservation Buffer" ;
+    rdfs:comment "Basel III capital conservation buffer requirement" ;
+    :currentLevel "2.5"^^xsd:decimal ;
+    chimera:hasEvidence "Basel III introduces a capital conservation buffer of 2.5% of risk-weighted assets." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "BCBS_Basel_III_Chunk_009" ;
+    chimera:pageNumber 9 ;
+    prov:wasGeneratedBy :BaselIII_Provenance .
+
+:BaselIII_CountercyclicalBuffer a :CountercyclicalBuffer ;
+    rdfs:label "Basel III Countercyclical Buffer" ;
+    rdfs:comment "Basel III countercyclical capital buffer" ;
+    :currentLevel "0.0"^^xsd:decimal ;
+    chimera:hasEvidence "The countercyclical buffer ranges from 0% to 2.5% depending on credit conditions." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "BCBS_Basel_III_Chunk_011" ;
+    chimera:pageNumber 11 ;
+    prov:wasGeneratedBy :BaselIII_Provenance .
+
+:BaselIII_LeverageRatio a :LeverageRatio ;
+    rdfs:label "Basel III Leverage Ratio" ;
+    rdfs:comment "Basel III minimum leverage ratio requirement" ;
+    :currentLevel "3.0"^^xsd:decimal ;
+    chimera:hasEvidence "Basel III introduces a minimum leverage ratio of 3% of total exposures." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "BCBS_Basel_III_Chunk_013" ;
+    chimera:pageNumber 13 ;
+    prov:wasGeneratedBy :BaselIII_Provenance .
+
+:BaselIII_LCR_Requirement a :Regulation ;
+    rdfs:label "Basel III LCR Requirement" ;
+    rdfs:comment "Basel III Liquidity Coverage Ratio requirement" ;
+    :minimumRequirement "100.0"^^xsd:decimal ;
+    :effectiveDate "2015-01-01"^^xsd:date ;
+    chimera:hasEvidence "Basel III requires banks to maintain a Liquidity Coverage Ratio of at least 100%." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "BCBS_Basel_III_Chunk_015" ;
+    chimera:pageNumber 15 ;
+    prov:wasGeneratedBy :BaselIII_Provenance .
+
+:BaselIII_NSFR_Requirement a :Regulation ;
+    rdfs:label "Basel III NSFR Requirement" ;
+    rdfs:comment "Basel III Net Stable Funding Ratio requirement" ;
+    :minimumRequirement "100.0"^^xsd:decimal ;
+    :effectiveDate "2018-01-01"^^xsd:date ;
+    chimera:hasEvidence "The Net Stable Funding Ratio must be at least 100% under Basel III." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "BCBS_Basel_III_Chunk_017" ;
+    chimera:pageNumber 17 ;
+    prov:wasGeneratedBy :BaselIII_Provenance .
+
+###############################################################################
+# Bank-Specific Regulatory Compliance
+###############################################################################
+
+:HSBC_HK a :Bank ;
+    rdfs:label "HSBC Hong Kong" ;
+    rdfs:comment "HSBC's Hong Kong banking operations" ;
+    :regulatedBy :HKMA ;
+    :subjectTo :HKMA_Capital_Adequacy ;
+    :subjectTo :HKMA_LCR ;
+    :subjectTo :HKMA_NSFR ;
+    :subjectTo :BaselIII_CET1 ;
+    :subjectTo :BaselIII_Tier1 ;
+    :subjectTo :BaselIII_TotalCapital ;
+    :hasRiskExposure :CreditRisk ;
+    :hasRiskExposure :MarketRisk ;
+    :hasRiskExposure :LiquidityRisk ;
+    chimera:hasEvidence "HSBC Hong Kong is regulated by HKMA and must comply with both HKMA and Basel III requirements." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "HSBC_Annual_Report_2023_Chunk_001" ;
+    chimera:pageNumber 42 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:HSBC_HK_CET1 a :CommonEquityTier1 ;
+    rdfs:label "HSBC Hong Kong CET1 Ratio" ;
+    :currentLevel "15.6"^^xsd:decimal ;
+    chimera:hasEvidence "HSBC Hong Kong reported a CET1 ratio of 15.6% as of December 2023." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "HSBC_Annual_Report_2023_Chunk_005" ;
+    chimera:pageNumber 45 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:HSBC_HK_Tier1 a :Tier1Capital ;
+    rdfs:label "HSBC Hong Kong Tier 1 Ratio" ;
+    :currentLevel "17.2"^^xsd:decimal ;
+    chimera:hasEvidence "HSBC Hong Kong's Tier 1 capital ratio was 17.2% at year-end 2023." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "HSBC_Annual_Report_2023_Chunk_007" ;
+    chimera:pageNumber 47 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:HSBC_HK_Leverage a :LeverageRatio ;
+    rdfs:label "HSBC Hong Kong Leverage Ratio" ;
+    :currentLevel "5.8"^^xsd:decimal ;
+    chimera:hasEvidence "HSBC Hong Kong maintained a leverage ratio of 5.8% in 2023." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "HSBC_Annual_Report_2023_Chunk_009" ;
+    chimera:pageNumber 49 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:StandardChartered_HK a :Bank ;
+    rdfs:label "Standard Chartered Hong Kong" ;
+    rdfs:comment "Standard Chartered's Hong Kong banking operations" ;
+    :regulatedBy :HKMA ;
+    :subjectTo :HKMA_Capital_Adequacy ;
+    :subjectTo :BaselIII_CET1 ;
+    :subjectTo :BaselIII_Tier1 ;
+    :hasRiskExposure :CreditRisk ;
+    :hasRiskExposure :OperationalRisk ;
+    chimera:hasEvidence "Standard Chartered Hong Kong operates under HKMA supervision and Basel III framework." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "SC_HK_Annual_Report_2023_Chunk_001" ;
+    chimera:pageNumber 38 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:StandardChartered_HK_CET1 a :CommonEquityTier1 ;
+    rdfs:label "Standard Chartered Hong Kong CET1 Ratio" ;
+    :currentLevel "14.1"^^xsd:decimal ;
+    chimera:hasEvidence "Standard Chartered Hong Kong reported a CET1 ratio of 14.1% for 2023." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "SC_HK_Annual_Report_2023_Chunk_003" ;
+    chimera:pageNumber 40 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:BankOfChina_HK a :Bank ;
+    rdfs:label "Bank of China (Hong Kong)" ;
+    rdfs:comment "Bank of China's Hong Kong subsidiary" ;
+    :regulatedBy :HKMA ;
+    :subjectTo :HKMA_Capital_Adequacy ;
+    :subjectTo :HKMA_Stress_Testing ;
+    :subjectTo :BaselIII_CET1 ;
+    :hasRiskExposure :CreditRisk ;
+    chimera:hasEvidence "Bank of China (Hong Kong) is regulated by HKMA and participates in stress testing exercises." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "BOC_HK_Annual_Report_2023_Chunk_001" ;
+    chimera:pageNumber 35 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+:BankOfChina_HK_CET1 a :CommonEquityTier1 ;
+    rdfs:label "Bank of China Hong Kong CET1 Ratio" ;
+    :currentLevel "13.8"^^xsd:decimal ;
+    chimera:hasEvidence "Bank of China Hong Kong maintained a CET1 ratio of 13.8% in 2023." ;
+    chimera:evidenceVerified true ;
+    chimera:sourceChunk "BOC_HK_Annual_Report_2023_Chunk_002" ;
+    chimera:pageNumber 36 ;
+    prov:wasGeneratedBy :HKMA_Provenance .
+
+###############################################################################
+# Regulatory Relationships
+###############################################################################
+
+:HKMA :requiresApproval :HKMA_Capital_Adequacy ;
+    :requiresApproval :HKMA_LCR ;
+    :requiresApproval :HKMA_NSFR .
+
+:BaselCommittee :requiresApproval :BaselIII_CET1 ;
+    :requiresApproval :BaselIII_Tier1 ;
+    :requiresApproval :BaselIII_TotalCapital ;
+    :requiresApproval :BaselIII_ConservationBuffer .
+
+:HSBC_HK :hasCapitalRatio :HSBC_HK_CET1 ;
+    :hasCapitalRatio :HSBC_HK_Tier1 ;
+    :hasCapitalRatio :HSBC_HK_Leverage .
+
+:StandardChartered_HK :hasCapitalRatio :StandardChartered_HK_CET1 .
+
+:BankOfChina_HK :hasCapitalRatio :BankOfChina_HK_CET1 .
+
