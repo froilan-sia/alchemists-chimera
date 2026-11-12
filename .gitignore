@@ -1,13 +1,13 @@
 # OS
-.DS_Store
 Thumbs.db
+*.bak
+*.backup
 
 # Python
 __pycache__/
 *.py[cod]
 .venv/
 venv/
-
 
 # Env
 .env
@@ -21,4 +21,3 @@ site/
 
 # Mac
 .DS_Store
-

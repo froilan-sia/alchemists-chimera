@@ -16,14 +16,14 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     },
     {
       "name": "Ingestion Pipeline Orchestrator",
-      "tasks": ["5a"],
+      "tasks": ["5.1"],
       "depends_on": ["1", "2", "3", "4", "5"],
       "description": "Orchestrator that coordinates all ingestor components"
     },
     {
       "name": "Staging & Data Preparation",
       "tasks": ["6", "7"],
-      "depends_on": ["1", "2", "3", "4", "5", "5a"],
+      "depends_on": ["1", "2", "3", "4", "5", "5.1"],
       "description": "HITL workflow and sample data preparation"
     },
     {
@@ -51,10 +51,10 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
       "description": "HKMA compliance features, comprehensive testing, and performance optimization"
     },
     {
-      "name": "Final Integration",
-      "tasks": ["19", "20"],
+      "name": "Final Integration & Repository Cleanup",
+      "tasks": ["19", "20", "21"],
       "depends_on": ["12", "13", "14", "15", "16", "17", "18"],
-      "description": "Kiro integration and final validation"
+      "description": "Kiro integration, final validation, and repository cleanup"
     }
   ],
   "dependencies": {
@@ -62,8 +62,8 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     "3": ["2"],
     "4": ["3"],
     "5": ["3", "4"],
-    "5a": ["1", "2", "3", "4", "5"],
-    "6": ["1", "2", "3", "4", "5", "5a"],
+    "5.1": ["1", "2", "3", "4", "5"],
+    "6": ["1", "2", "3", "4", "5", "5.1"],
     "7": ["5"],
     "8": ["6"],
     "9": ["8"],
@@ -73,11 +73,12 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     "13": ["12"],
     "14": ["12", "13"],
     "15": ["6", "10"],
-    "16": ["1", "2", "3", "4", "5", "5a", "6", "8", "9", "10", "11"],
-    "17": ["1", "2", "3", "4", "5", "5a", "6"],
-    "18": ["1", "2", "3", "4", "5", "5a", "6", "8", "9", "10", "11"],
+    "16": ["1", "2", "3", "4", "5", "5.1", "6", "8", "9", "10", "11"],
+    "17": ["1", "2", "3", "4", "5", "5.1", "6"],
+    "18": ["1", "2", "3", "4", "5", "5.1", "6", "8", "9", "10", "11"],
     "19": ["1-18"],
-    "20": ["1-19"]
+    "20": ["1-19"],
+    "21": ["20"]
   }
 }
 ```
@@ -170,7 +171,7 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
 
 ### Phase 1a: Ingestion Pipeline Orchestrator
 
-- [x] 5a. Implement Ingestion Pipeline Orchestrator (`src/ingestor/pipeline.py`)
+- [x] 5.1. Implement Ingestion Pipeline Orchestrator (`src/ingestor/pipeline.py`)
   - **Description**: Create orchestrator that coordinates all 5 ingestor components with vector store integration
   - **Requirements**: Integration requirements from design.md
   - **Design Reference**: Components and Interfaces - Ingestion Pipeline
@@ -480,6 +481,21 @@ This document outlines the implementation tasks for extending The Alchemist's Ch
     - Deployment readiness tests
     - Compliance validation tests
 
+### Phase 7: Repository Cleanup and Documentation Consistency
+
+- [ ] 21. Clean Up Tracked Artifacts and Reconcile Approval Documentation
+  - **Description**: Remove repository clutter and align the README's approval-flow wording with the implemented default behavior.
+  - **Requirements**: 4.5, 5.4, 6.7, 6.8
+  - **Implementation Subtasks**:
+    - Remove the tracked root `.DS_Store` file and confirm `.DS_Store` is covered by `.gitignore`.
+    - Review the six tracked root scratch scripts (`test_pdf_parser.py`, `test_pdf_parser_fixed.py`, `test_pipeline.py`, `test_provenance_manager.py`, `test_staging_manager.py`, and `test_staging_manager_minimal.py`); move useful coverage into the dedicated `tests/` area or delete each script when redundant.
+    - Update the README approval-flow wording to match `app.py` and `IngestionPipeline`: the default pipeline requires attributed human approval and does not auto-merge `VALID` records into the live knowledge graph.
+    - Preserve any explicitly documented legacy opt-in auto-approval behavior only where it remains accurate for direct `StagingManager` use.
+  - **Test Subtasks**:
+    - Verify repository status and tracked-file queries show no tracked `.DS_Store` and no obsolete root scratch scripts.
+    - Run the affected test suites and documentation checks, including a focused assertion that the default ingestion path keeps `VALID` records pending until attributed human approval.
+    - Confirm README statements about default approval behavior agree with the `app.py` and `IngestionPipeline` configuration.
+
 ## Notes
 
 ### Kiro Integration Notes
@@ -529,6 +545,6 @@ The following practical constraints from the design document must be observed du
 
 1. **No Login Wall (Task 8)**: For Devpost judges on Hugging Face Spaces, do not add a password/login gate. Instead, use a simple sidebar role selector (e.g., "Compliance Officer (Demo)" / "Risk Auditor") to tag HITL approvals in the audit trail.
 
-2. **Sequential Ollama Inference (Tasks 3, 5a, 17)**: Run Ollama qwen2.5:3b extraction sequentially (one chunk at a time) rather than parallelizing LLM calls, to stay safely within Hugging Face Spaces' 2 vCPU / 16 GB RAM free-tier limits.
+2. **Sequential Ollama Inference (Tasks 3, 5.1, 17)**: Run Ollama qwen2.5:3b extraction sequentially (one chunk at a time) rather than parallelizing LLM calls, to stay safely within Hugging Face Spaces' 2 vCPU / 16 GB RAM free-tier limits.
 
 3. **Hugging Face Non-Root Permissions (Tasks 12 & 13)**: Hugging Face Spaces runs containers as UID 1000. In Dockerfile and start.sh, set ENV OLLAMA_MODELS=/app/.ollama/models, ENV HF_HOME=/app/.cache, and ensure proper permissions so Ollama, sentence-transformers, and ChromaDB never hit PermissionDenied errors.
