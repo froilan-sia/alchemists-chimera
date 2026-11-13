@@ -5,6 +5,7 @@ from pathlib import Path
 
 from components.surgeons_table import (
     apply_table_edits,
+    approve_records,
     auto_approve_valid_records,
     filter_and_sort_rows,
     reject_records,
@@ -28,11 +29,14 @@ class UploadedFile:
         return self._content
 
 
-def make_manager(tmp_path: Path) -> StagingManager:
+def make_manager(
+    tmp_path: Path, require_human_approval: bool = False
+) -> StagingManager:
     """Create an isolated staging manager for UI workflow tests."""
     return StagingManager(
         staging_path=tmp_path / "staging",
         approved_kg_path=tmp_path / "approved.ttl",
+        require_human_approval=require_human_approval,
     )
 
 
@@ -46,7 +50,7 @@ def add_triple(manager: StagingManager, status: ValidationStatus) -> str:
         confidence=0.8,
         chunk_id="chunk-1",
         entity_anchors=["HKMA"],
-        metadata={},
+        metadata={"validation_status": status.value},
         extraction_timestamp=datetime.now(),
     )
     return manager.add_triple_for_staging(triple, status, [status.value])
@@ -142,3 +146,33 @@ def test_auto_approval_targets_only_pending_valid_records(tmp_path):
     assert approved == []
     assert manager.staging_triples[valid_id].approval_status == ApprovalDecision.APPROVED
     assert manager.staging_triples[quarantined_id].approval_status is None
+
+
+def test_approval_and_auto_approval_helpers_preserve_isolated_manager_outcomes(
+    tmp_path,
+):
+    """Approval helpers keep pending, approved, and quarantined outcomes distinct."""
+    approval_manager = make_manager(
+        tmp_path / "explicit-approval", require_human_approval=True
+    )
+    valid_id = add_triple(approval_manager, ValidationStatus.VALID)
+    rows = staging_table_rows(approval_manager)
+    rows[0]["Selected"] = True
+
+    assert rows[0]["Approval Status"] == "PENDING"
+    assert approve_records(
+        approval_manager, selected_record_ids(rows), "Compliance Officer (Demo)"
+    ) == [valid_id]
+    assert approval_manager.staging_triples[valid_id].approval_status == ApprovalDecision.APPROVED
+
+    auto_manager = make_manager(
+        tmp_path / "explicit-auto", require_human_approval=True
+    )
+    auto_valid_id = add_triple(auto_manager, ValidationStatus.VALID)
+    quarantined_id = add_triple(auto_manager, ValidationStatus.QUARANTINED)
+
+    assert auto_approve_valid_records(
+        auto_manager, reviewer="Compliance Officer (Demo)"
+    ) == [auto_valid_id]
+    assert auto_manager.staging_triples[auto_valid_id].approval_status == ApprovalDecision.APPROVED
+    assert auto_manager.staging_triples[quarantined_id].approval_status is None

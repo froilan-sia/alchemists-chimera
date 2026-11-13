@@ -113,7 +113,7 @@ The effective graph weight is shown as `α(t)`. The vector branch uses `1 − α
 5. Save edits before approving selected records. Use a rejection reason when rejecting records.
 6. Use **Auto-approve VALID** only when that decision is acceptable for your review process.
 
-See the full workflow in [`docs/user-guide.md`](docs/user-guide.md). The default ingestion pipeline keeps `VALID` records pending in compliance mode and requires an attributed reviewer before merging them into the live graph. The lower-level `StagingManager` still exposes an optional legacy auto-approval mode when instantiated directly; controlled deployments should use the pipeline or pass `require_human_approval=True`.
+See the full workflow in [`docs/user-guide.md`](docs/user-guide.md). The default ingestion pipeline keeps `VALID` records pending in compliance mode and requires an attributed reviewer before merging them into the live graph. The lower-level `StagingManager` retains its legacy auto-approval behavior for direct callers that use `require_human_approval=False`; controlled deployments should use the pipeline or pass `require_human_approval=True`.
 
 ### Live Knowledge Graph Explorer
 
@@ -175,7 +175,7 @@ The design follows governance ideas that are useful for a controlled prototype:
 
 - **Accountability:** the sidebar role selector attributes UI actions to a named demo role; staging records retain reviewer, timestamp, edit history, and rejection reason fields.
 - **Transparency:** the system keeps source chunk/page metadata, evidence text, extraction status, validation messages, graph/vector retrieval branches, scores, and answer citations.
-- **Human control:** the Surgeon’s Table exposes edit, reject, approve, and auto-approve actions. Because the current backend auto-merges `VALID` records, production deployments should place an explicit human approval gate in front of live-graph writes.
+- **Human control:** the default pipeline leaves `VALID` records pending until the Surgeon’s Table records an attributed reviewer decision. The table exposes edit, reject, approve, and explicitly reviewer-triggered auto-approve actions. Direct lower-level `StagingManager` callers retain a legacy `require_human_approval=False` mode, which is not the controlled default.
 - **Resilience:** the triple extractor retries failed Ollama calls with exponential backoff; the pipeline continues to the next PDF chunk after an individual chunk error; the staging manager has transaction rollback support for approval operations.
 - **Deterministic checks:** evidence substring checks and basic/optional SHACL validation run before records are classified. Configure a shapes file explicitly when the application needs the repository's full SHACL shapes rather than the validator's built-in fallback shapes.
 

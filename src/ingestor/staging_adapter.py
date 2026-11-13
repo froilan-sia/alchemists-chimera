@@ -11,7 +11,11 @@ from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 
 from .pipeline import StagingRecord, ValidationStatus
-from ..staging_manager import StagingManager, StagingTriple, ApprovalDecision
+from ..staging_manager import (
+    StagingManager as ComprehensiveStagingManager,
+    StagingTriple,
+    ApprovalDecision,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,15 +23,20 @@ logger = logging.getLogger(__name__)
 class CompatibleStagingManager:
     """Adapter that makes the comprehensive StagingManager compatible with existing code."""
     
-    def __init__(self, staging_path: Optional[Path] = None):
+    def __init__(
+        self,
+        staging_path: Optional[Path] = None,
+        require_human_approval: bool = True,
+    ):
         """Initialize compatible staging manager.
         
         Args:
             staging_path: Path to staging data
+            require_human_approval: Keep valid candidates staged until review
         """
-        self.comprehensive_manager = StagingManager(
+        self.comprehensive_manager = ComprehensiveStagingManager(
             staging_path,
-            require_human_approval=True,
+            require_human_approval=require_human_approval,
         )
         self.staging_path = staging_path
         self.staging_records: Dict[str, StagingRecord] = {}

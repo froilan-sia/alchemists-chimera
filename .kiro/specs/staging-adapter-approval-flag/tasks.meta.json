@@ -1,0 +1,126 @@
+{
+  "pbtResults": {
+    "1. Write bug condition exploration tests before the fix": {
+      "status": "passed",
+      "lastRunTimestamp": 1794480111265
+    },
+    "2. Write preservation property tests before implementing the fix": {
+      "status": "passed",
+      "lastRunTimestamp": 1794472421214
+    },
+    "3.3 Verify the bug-condition exploration tests now pass": {
+      "status": "passed",
+      "lastRunTimestamp": 1794481320018
+    },
+    "3.4 Verify preservation tests still pass": {
+      "status": "passed",
+      "lastRunTimestamp": 1794481882086
+    }
+  },
+  "executionHistory": {
+    "1. Write bug condition exploration tests before the fix": [
+      {
+        "executionId": "9114ca24-5cef-4c32-afb7-dcbc7ec53dbb",
+        "chatSessionId": "sess_b87cb794-4570-4c7d-9a8e-6dc9164ff8f2",
+        "timestamp": 1794471287192
+      },
+      {
+        "executionId": "9114ca24-5cef-4c32-afb7-dcbc7ec53dbb",
+        "chatSessionId": "sess_b87cb794-4570-4c7d-9a8e-6dc9164ff8f2",
+        "timestamp": 1794471648309
+      }
+    ],
+    "2. Write preservation property tests before implementing the fix": [
+      {
+        "executionId": "2c6c1798-b00b-4bf0-ba2c-b2fd7b082eeb",
+        "chatSessionId": "sess_617e1b92-f58f-4979-86a1-9b8c59e945a5",
+        "timestamp": 1794471696023
+      },
+      {
+        "executionId": "2c6c1798-b00b-4bf0-ba2c-b2fd7b082eeb",
+        "chatSessionId": "sess_617e1b92-f58f-4979-86a1-9b8c59e945a5",
+        "timestamp": 1794472565632
+      }
+    ],
+    "3.1 Inspect and update `src/ingestor/staging_adapter.py`": [
+      {
+        "executionId": "20f2123a-4d21-4536-9c4e-d2d007e3587e",
+        "chatSessionId": "sess_a0f6138f-d448-448d-b589-73752858b74f",
+        "timestamp": 1794472683115
+      },
+      {
+        "executionId": "20f2123a-4d21-4536-9c4e-d2d007e3587e",
+        "chatSessionId": "sess_a0f6138f-d448-448d-b589-73752858b74f",
+        "timestamp": 1794472801614
+      }
+    ],
+    "3.2 Verify every `StagingManager` call site in `src/` and `views/`": [
+      {
+        "executionId": "20f2123a-4d21-4536-9c4e-d2d007e3587e",
+        "chatSessionId": "sess_a0f6138f-d448-448d-b589-73752858b74f",
+        "timestamp": 1794472806985
+      },
+      {
+        "executionId": "20f2123a-4d21-4536-9c4e-d2d007e3587e",
+        "chatSessionId": "sess_a0f6138f-d448-448d-b589-73752858b74f",
+        "timestamp": 1794472948405
+      }
+    ],
+    "3.3 Verify the bug-condition exploration tests now pass": [
+      {
+        "executionId": "20f2123a-4d21-4536-9c4e-d2d007e3587e",
+        "chatSessionId": "sess_a0f6138f-d448-448d-b589-73752858b74f",
+        "timestamp": 1794472954109
+      },
+      {
+        "executionId": "701b1202-c5a0-4f73-aba2-517efbcaa676",
+        "chatSessionId": "sess_cb205485-9c55-448b-a692-9c444fc07ee0",
+        "timestamp": 1794474634147
+      },
+      {
+        "executionId": "da9ce8dd-8a37-4a3c-9367-ad0e4c369938",
+        "chatSessionId": "sess_aab83bd4-b68f-407c-928c-e5d943bb5654",
+        "timestamp": 1794479843860
+      },
+      {
+        "executionId": "7a879239-a3a5-401d-8638-198aae35d6bc",
+        "chatSessionId": "sess_19b04c95-df88-4cc1-a2cf-7cd382fdb498",
+        "timestamp": 1794480039518
+      },
+      {
+        "executionId": "8fe9de0e-4837-46cb-8a1f-580d67f789f1",
+        "chatSessionId": "sess_81cb3275-e4af-4923-9e0c-86178c8a7f51",
+        "timestamp": 1794481223717
+      },
+      {
+        "executionId": "3f0750ac-a47f-4c59-b985-ead61b81e3ab",
+        "chatSessionId": "sess_546604cd-c052-4dc1-8762-b73135ddd99d",
+        "timestamp": 1794481642786
+      }
+    ],
+    "3.4 Verify preservation tests still pass": [
+      {
+        "executionId": "da9ce8dd-8a37-4a3c-9367-ad0e4c369938",
+        "chatSessionId": "sess_aab83bd4-b68f-407c-928c-e5d943bb5654",
+        "timestamp": 1794479843908
+      },
+      {
+        "executionId": "3f0750ac-a47f-4c59-b985-ead61b81e3ab",
+        "chatSessionId": "sess_546604cd-c052-4dc1-8762-b73135ddd99d",
+        "timestamp": 1794481642864
+      },
+      {
+        "executionId": "3f0750ac-a47f-4c59-b985-ead61b81e3ab",
+        "chatSessionId": "sess_546604cd-c052-4dc1-8762-b73135ddd99d",
+        "timestamp": 1794481912076
+      }
+    ],
+    "4. Checkpoint - Run the full test suite": [
+      {
+        "executionId": "8b09fd40-4536-428e-9c62-bf64ebe38fe6",
+        "chatSessionId": "sess_0e5baeae-35b2-4c78-85f1-92cae3d782b9",
+        "timestamp": 1794481975627
+      }
+    ]
+  }
+}

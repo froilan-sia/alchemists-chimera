@@ -83,9 +83,9 @@ The current code uses more than one graph path:
 
 Use `manager.get_stats()` or `pipeline.staging_manager.get_stats()` to inspect `approved_kg_path` and `staging_path`. If you need one canonical path for a deployment, pass and verify that path in the staging manager configuration and update the explorer integration accordingly.
 
-## Approval appears to happen before a human review
+## VALID records remain pending for human review
 
-That is the current implementation behavior for records classified `VALID`: the comprehensive staging manager auto-merges them when the pipeline adds them. The UI's **Auto-approve VALID** action is a second explicit action for pending valid records, while quarantined records are the main manual-review path. This is acceptable only as a prototype default. Add a human approval gate and tests before using the workflow for controlled data.
+The default ingestion pipeline uses the compliance staging adapter, which constructs the comprehensive manager with `require_human_approval=True`. `VALID` records remain in staging until the UI records an attributed reviewer decision. If a direct caller intentionally uses the lower-level `StagingManager` with `require_human_approval=False`, its legacy auto-approval behavior is expected; use the pipeline or pass `require_human_approval=True` for controlled data.
 
 ## The graph reload does not show a new fact
 

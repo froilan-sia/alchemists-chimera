@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Commit Changes After Task Completion",
+      "trigger": "PostTaskExecution",
+      "description": "Automatically stages and commits repository changes after a Kiro spec task completes.",
+      "action": {
+        "type": "command",
+        "command": "bash \"${KIRO_WORKSPACE_ROOT:-.}/.kiro/hooks/auto-commit.sh\"",
+        "timeout": 120
+      }
+    }
+  ]
+}

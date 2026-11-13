@@ -101,7 +101,7 @@ Select records, enter a reason, and choose **Reject selected**. The record remai
 
 The button approves pending records whose displayed SHACL status is `VALID`. It uses the current sidebar role as the reviewer.
 
-There is an additional implementation detail to understand: the comprehensive staging manager currently auto-merges records classified `VALID` when the pipeline adds them. Therefore, a `VALID` record may already be in the approved graph before a user presses the UI button. Quarantined records are the records most likely to require manual review in the current build. Treat this as a prototype behavior and add an explicit human gate before production or regulated use.
+The default ingestion pipeline keeps `VALID` records pending in staging. A record enters the approved graph only after the table records an attributed reviewer decision. Direct callers that instantiate the lower-level `StagingManager` with `require_human_approval=False` retain a legacy auto-approval mode; controlled deployments should use the pipeline or pass `require_human_approval=True` explicitly.
 
 ## Where records are stored
 

@@ -180,7 +180,7 @@ The comprehensive backend in `src/staging_manager.py` provides:
 - `reset_staging(include_approved=False)`;
 - `export_approved_kg(output_path=None)`.
 
-The adapter additionally exposes the compatibility methods used by the pipeline and Streamlit components. `approve_triple()` merges approved data into the configured Turtle file, adds approval/evidence metadata, and attempts a live graph reload. The current implementation auto-merges `VALID` records when they are first added; callers should not infer that every approved graph write has passed a separate human decision.
+The adapter additionally exposes the compatibility methods used by the pipeline and Streamlit components. `approve_triple()` merges approved data into the configured Turtle file, adds approval/evidence metadata, and attempts a live graph reload. The default pipeline constructs the adapter in human-approval mode, so `VALID` records remain pending until an attributed reviewer calls `approve_triple()`. Direct lower-level `StagingManager` callers can retain legacy auto-approval by using `require_human_approval=False`; controlled callers should pass `True`.
 
 ## FastAPI query service
 

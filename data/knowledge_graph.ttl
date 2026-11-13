@@ -1,0 +1,32 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix approval: <http://alchemists-chimera.org/approval#> .
+@prefix chimera: <http://alchemists-chimera.org/> .
+@prefix dc1: <http://purl.org/dc/terms/> .
+@prefix ns1: <http://alchemists-chimera.org/predicate/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+approval:approval_20261112_190226 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple <http://alchemists-chimera.org/subject/subject_chimera_bank> ;
+    dc1:created "2026-11-12T19:02:26.794905"^^xsd:dateTime .
+
+approval:approval_20261112_190237 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple <http://alchemists-chimera.org/subject/subject_chimera_bank> ;
+    dc1:created "2026-11-12T19:02:37.252403"^^xsd:dateTime,
+        "2026-11-12T19:02:37.281032"^^xsd:dateTime .
+
+approval:approval_20261112_190251 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple <http://alchemists-chimera.org/subject/subject_chimera_bank> ;
+    dc1:created "2026-11-12T19:02:51.897846"^^xsd:dateTime,
+        "2026-11-12T19:02:51.923628"^^xsd:dateTime .
+
+ns1:predicate_chimera_requires rdfs:label "chimera:requires" .
+
+<http://alchemists-chimera.org/subject/subject_chimera_bank> rdfs:label "chimera:Bank" ;
+    chimera:confidence "0.9"^^xsd:float ;
+    chimera:evidence "The bank must maintain capital requirements." ;
+    ns1:predicate_chimera_requires <http://alchemists-chimera.org/object/object_chimera_capital> .
+

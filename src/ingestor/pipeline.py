@@ -639,8 +639,8 @@ class IngestionPipeline:
                 },
             )
 
-            # Send to staging manager (HITL workflow)
-            # The comprehensive StagingManager will handle auto-approval for VALID triples
+            # Send to the compliance staging manager (HITL workflow).
+            # The default adapter keeps VALID candidates pending until a reviewer acts.
             self.staging_manager.add_record(staging_record)
 
         # Step 6: Batch vector insertion is handled by _process_chunk_batch.

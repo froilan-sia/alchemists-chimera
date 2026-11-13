@@ -165,8 +165,13 @@ class StagingManager:
             require_human_approval: Keep valid candidates staged until a reviewer acts
         """
         # Path configuration
-        self.staging_path = Path(staging_path or settings.get("staging_path", "./data/staging"))
-        self.approved_kg_path = Path(approved_kg_path or settings.get("approved_kg_path", "./data/knowledge_graph.ttl"))
+        self.staging_path = Path(
+            staging_path or getattr(settings, "staging_path", "./data/staging")
+        )
+        self.approved_kg_path = Path(
+            approved_kg_path
+            or getattr(settings, "approved_kg_path", "./data/knowledge_graph.ttl")
+        )
         
         # Ensure directories exist
         self.staging_path.mkdir(parents=True, exist_ok=True)
