@@ -30,7 +30,7 @@ This plan repairs the three malformed regulatory PDF fixtures through canonical 
 
 - [ ] 3. Repair the three invalid PDF fixtures with deterministic local generation
 
-  - [~] 3.1 Capture canonical source fixtures and implement the generator
+  - [x] 3.1 Capture canonical source fixtures and implement the generator
     - Create `data/input/fixture_sources/hkma_capital_requirements.txt`, `data/input/fixture_sources/basel_iii_framework.txt`, and `data/input/fixture_sources/risk_weighted_assets.txt` as byte-for-byte UTF-8 copies of the three pre-fix `.pdf` text payloads captured in task 1.
     - Add `tools/generate_sample_pdf_fixtures.py` using only Python standard-library modules. Define an explicit source-to-output mapping for exactly the three named PDFs and fail clearly for a missing source or unsupported mapping.
     - Preserve every source line, blank paragraph, heading, representative value, named entity, effective date, and conclusion. Normalize only CRLF/CR to LF for layout and wrap at fixed word boundaries without dropping source text.
