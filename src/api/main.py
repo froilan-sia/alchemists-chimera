@@ -7,22 +7,82 @@ and system monitoring.
 
 import logging
 import time
+from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Dict, Any
+from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Query, status
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .. import __version__, __description__
 from ..config import settings
 from ..models import QueryRequest, HybridResponse, HealthStatus, ErrorResponse
+from ..ingestor.job_models import (
+    IngestionJobStatus,
+    JobConfiguration,
+    JobSubmissionResponse,
+    JobLifecycleStatus,
+    SourceMetadata,
+)
+from ..ingestor.job_runner import AsyncIngestionJobRunner, RunnerLimits, RunnerUnavailableError
+from ..ingestor.job_store import IngestionJobStore, UnknownJobError
+from ..ingestor.upload_store import (
+    UploadedPdfStore,
+    UploadEmptyError,
+    UploadIoError,
+    UploadNotPdfError,
+    UploadTooLargeError,
+    UploadValidationError,
+)
 
 # Set up logging
 logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger(__name__)
 
+# Global services initialized by the application lifespan.
+retriever = None
+ingestion_pipeline = None
+job_store = None
+upload_store = None
+job_runner = None
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """Own the retriever and ingestion worker for the ASGI application lifetime."""
+    global retriever, job_store, upload_store, job_runner
+    logger.info("Starting Alchemist's Chimera v%s", __version__)
+    from ..router import HybridRouter
+
+    retriever = HybridRouter()
+    job_store = IngestionJobStore(Path("data/tmp/ingestion_jobs"))
+    upload_store = UploadedPdfStore(Path("data/uploads/jobs"))
+
+    def pipeline_factory(**configuration):
+        from ..ingestor.pipeline import IngestionPipeline
+
+        return IngestionPipeline(configuration)
+
+    job_runner = AsyncIngestionJobRunner(
+        job_store,
+        pipeline_factory=pipeline_factory,
+        limits=RunnerLimits(),
+    )
+    await job_runner.start()
+    try:
+        yield
+    finally:
+        await job_runner.stop()
+        job_runner = None
+        upload_store = None
+        job_store = None
+
+
 # Create FastAPI application
 app = FastAPI(
+    lifespan=lifespan,
     title="Alchemist's Chimera API",
     description=__description__,
     version=__version__,
@@ -39,36 +99,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global retriever instance (will be initialized in startup)
-retriever = None
-ingestion_pipeline = None
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize application components on startup."""
-    global retriever
-    
-    logger.info(f"Starting Alchemist's Chimera v{__version__}")
-    logger.info(f"Environment: {settings.environment}")
-    logger.info(f"Log level: {settings.log_level}")
-    
-    # Import here to avoid circular imports
-    from ..router import HybridRouter
-    
-    try:
-        # Initialize retriever (simplified for now)
-        retriever = HybridRouter()
-        logger.info("Hybrid retriever initialized successfully")
-        
-        # Initialize components
-        logger.info("Application components initialized")
-        
-    except Exception as e:
-        logger.error(f"Failed to initialize application: {e}")
-        raise
-
-
 @app.get("/", tags=["Root"])
 async def root() -> Dict[str, Any]:
     """Root endpoint with API information."""
@@ -82,6 +112,8 @@ async def root() -> Dict[str, Any]:
             "health": "/health",
             "query": "/query",
             "query_simple": "/query/simple",
+            "ingestion_submit": "/ingestion/jobs",
+            "ingestion_status": "/ingestion/jobs/{job_id}",
         },
         "features": {
             "hybrid_retrieval": True,
@@ -93,7 +125,80 @@ async def root() -> Dict[str, Any]:
     }
 
 
-@app.get("/health", response_model=HealthStatus, tags=["Monitoring"])
+@app.post(
+    "/ingestion/jobs",
+    response_model=JobSubmissionResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    tags=["Ingestion"],
+)
+async def submit_ingestion_job(
+    file: UploadFile = File(...),
+    chunk_size: int = Form(1000),
+    chunk_overlap: int = Form(200),
+) -> JobSubmissionResponse:
+    """Validate, spool, and queue an upload without waiting for extraction."""
+    if job_store is None or upload_store is None or job_runner is None:
+        raise HTTPException(status_code=503, detail="Ingestion runner is not initialized")
+    if not 100 <= chunk_size <= 5000 or not 0 <= chunk_overlap <= 500:
+        raise HTTPException(status_code=400, detail="Invalid chunk configuration")
+
+    job_id = f"ing-{uuid4().hex}"
+    try:
+        source = upload_store.spool(file, job_id)
+        configuration = JobConfiguration(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
+        created = job_store.create_job(
+            SourceMetadata(
+                file_name=source.file_name,
+                size_bytes=source.size_bytes,
+                content_sha256=source.content_sha256,
+            ),
+            configuration=configuration,
+            source_path=source.path,
+            job_id=job_id,
+        )
+        try:
+            await job_runner.submit(job_id)
+        except RunnerUnavailableError as error:
+            upload_store.remove(job_id)
+            job_store.delete_job(job_id)
+            raise HTTPException(status_code=503, detail=str(error)) from error
+        return JobSubmissionResponse(
+            job_id=created.job_id,
+            status=created.status,
+            status_url=f"/ingestion/jobs/{created.job_id}",
+            source=created.source,
+            created_at=created.created_at,
+        )
+    except HTTPException:
+        raise
+    except UploadTooLargeError as error:
+        upload_store.remove(job_id)
+        raise HTTPException(status_code=413, detail=error.code) from error
+    except UploadNotPdfError as error:
+        upload_store.remove(job_id)
+        raise HTTPException(status_code=415, detail=error.code) from error
+    except (UploadEmptyError, UploadIoError, UploadValidationError) as error:
+        upload_store.remove(job_id)
+        raise HTTPException(status_code=400, detail=error.code) from error
+
+
+@app.get(
+    "/ingestion/jobs/{job_id}",
+    response_model=IngestionJobStatus,
+    tags=["Ingestion"],
+)
+async def get_ingestion_job(job_id: str) -> IngestionJobStatus:
+    """Return the durable status snapshot for an accepted upload."""
+    if job_store is None:
+        raise HTTPException(status_code=503, detail="Ingestion store is not initialized")
+    try:
+        return job_store.get(job_id)
+    except UnknownJobError as error:
+        raise HTTPException(status_code=404, detail="Unknown ingestion job") from error
+
 async def health_check() -> HealthStatus:
     """Report the health of API, retrieval, and ingestion components."""
     components: Dict[str, str] = {}

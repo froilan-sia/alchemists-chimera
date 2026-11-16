@@ -28,31 +28,30 @@ TABLE_COLUMNS = [
 
 
 def save_uploaded_pdf(uploaded_file: Any, upload_dir: Path) -> Path:
-    """Persist an uploaded PDF under a generated, safe filename.
+    """Persist an uploaded PDF using bounded reads and a signature check.
 
-    Args:
-        uploaded_file: Streamlit UploadedFile-like object.
-        upload_dir: Directory where the upload should be stored.
-
-    Returns:
-        The path of the persisted PDF.
-
-    Raises:
-        ValueError: If the file is not a non-empty PDF.
+    This legacy helper remains available for direct callers. The API upload
+    boundary uses :class:`UploadedPdfStore` directly and retains its job source.
     """
+    from src.ingestor.upload_store import UploadedPdfStore
+
+    upload_dir = Path(upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
     file_name = Path(str(getattr(uploaded_file, "name", ""))).name
     if not file_name or Path(file_name).suffix.lower() != ".pdf":
         raise ValueError("Only PDF files can be uploaded.")
 
-    content = uploaded_file.getvalue()
-    if not content:
-        raise ValueError("The uploaded PDF is empty.")
-
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    job_id = f"legacy-{uuid.uuid4().hex}"
+    store = UploadedPdfStore(upload_dir / ".jobs")
+    source = store.spool(uploaded_file, job_id)
     safe_stem = re.sub(r"[^A-Za-z0-9_.-]", "_", Path(file_name).stem).strip("._")
     safe_stem = safe_stem or "document"
     destination = upload_dir / f"{safe_stem}_{uuid.uuid4().hex[:12]}.pdf"
-    destination.write_bytes(content)
+    source.path.replace(destination)
+    try:
+        source.path.parent.rmdir()
+    except OSError:
+        pass
     return destination
 
 

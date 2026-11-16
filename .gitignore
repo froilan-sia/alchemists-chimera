@@ -2,7 +2,7 @@
 Thumbs.db
 *.bak
 *.backup
-
+data/temp/
 # Python
 __pycache__/
 *.py[cod]

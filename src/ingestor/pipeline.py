@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from ..config import settings
 from ..performance import (
@@ -435,6 +435,107 @@ class IngestionPipeline:
                     logger.error("Unable to save recovery checkpoint: %s", checkpoint_error)
             raise PipelineError(f"Pipeline processing failed: {e}") from e
 
+    def process_pdf_job(
+        self,
+        pdf_path: Union[str, Path],
+        checkpoint_path: Union[str, Path],
+        source_hash: str,
+        progress_sink: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ) -> PipelineMetrics:
+        """Run the incremental job seam while preserving ``process_pdf(Path)``."""
+        from .incremental_persistence import IncrementalPersistenceCoordinator
+
+        pdf_path = Path(pdf_path)
+        if not pdf_path.exists():
+            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+        self.checkpoint_path = Path(checkpoint_path)
+        checkpoint = self._load_checkpoint(pdf_path)
+        completed = set(checkpoint.get("processed_chunks", []))
+        self._active_checkpoint = checkpoint
+        self.metrics = PipelineMetrics(start_time=datetime.now())
+        self.status = PipelineStatus.IN_PROGRESS
+        limiter = ResourceLimiter(getattr(self, "performance_config", PerformanceConfig()))
+        monitor = getattr(self, "performance_monitor", PerformanceMonitor())
+        self.performance_monitor = monitor
+        coordinator = IncrementalPersistenceCoordinator(
+            self.vector_store,
+            self.staging_manager,
+            source_hash=source_hash,
+            configuration=self.config,
+            checkpoint=checkpoint,
+            checkpoint_writer=self._save_checkpoint,
+            progress_sink=progress_sink,
+        )
+
+        def emit(event: Dict[str, Any]) -> None:
+            if progress_sink is not None:
+                progress_sink(event)
+
+        try:
+            for event_chunk in self.pdf_parser.parse_pdf_streaming(
+                pdf_path,
+                progress_sink=lambda event: emit({"stage": "parsing", **event}),
+            ):
+                self.metrics.total_chunks += 1
+                emit({
+                    "stage": "extracting_entities",
+                    "chunks_discovered": self.metrics.total_chunks,
+                    "chunk_id": event_chunk.id,
+                })
+                if event_chunk.id in completed:
+                    self.metrics.processed_chunks += 1
+                    continue
+                limiter.check(self.metrics.total_chunks)
+                try:
+                    records = self._process_chunk(
+                        event_chunk,
+                        insert_vector=False,
+                        defer_persistence=True,
+                    )
+                    emit({"stage": "persisting_vectors", "chunk_id": event_chunk.id})
+                    coordinator.persist_chunk(event_chunk, records)
+                    self.metrics.processed_chunks += 1
+                    self.metrics.vector_insertions += 1
+                    emit({
+                        "stage": "validating_and_staging",
+                        "chunk_id": event_chunk.id,
+                        "chunks_processed": self.metrics.processed_chunks,
+                        "chunks_failed": self.metrics.failed_chunks,
+                        "triples_extracted": self.metrics.total_triples,
+                        "triples_staged": self.metrics.valid_triples + self.metrics.quarantined_triples,
+                        "vector_chunks_persisted": self.metrics.vector_insertions,
+                    })
+                except Exception as error:
+                    self.metrics.failed_chunks += 1
+                    diagnostic = {
+                        "code": "PERSISTENCE_FAILED" if "Persist" in type(error).__name__ else "CHUNK_PROCESSING_FAILED",
+                        "stage": "persisting_vectors",
+                        "message": f"Chunk {event_chunk.id} could not be completed; processing continued.",
+                        "retryable": True,
+                        "chunk_id": event_chunk.id,
+                    }
+                    emit({"stage": "persisting_vectors", "diagnostic": diagnostic})
+            self.metrics.end_time = datetime.now()
+            self.metrics.peak_memory_mb = limiter.memory_usage_mb
+            self.status = PipelineStatus.PARTIAL if self.metrics.failed_chunks else PipelineStatus.COMPLETED
+            checkpoint["status"] = self.status.value
+            self._save_checkpoint(checkpoint)
+            if self.status == PipelineStatus.COMPLETED:
+                self.clear_checkpoint()
+            emit({
+                "stage": "finalizing",
+                "fraction": 1.0 if self.status == PipelineStatus.COMPLETED else 0.99,
+                "chunks_processed": self.metrics.processed_chunks,
+                "chunks_failed": self.metrics.failed_chunks,
+            })
+            return self.metrics
+        except Exception:
+            self.status = PipelineStatus.FAILED
+            self.metrics.end_time = datetime.now()
+            checkpoint["status"] = self.status.value
+            self._save_checkpoint(checkpoint)
+            raise
+
     def _process_chunk_batch(
         self,
         chunks: List[PDFChunk],
@@ -553,8 +654,13 @@ class IngestionPipeline:
         chunk: PDFChunk,
         entities: Optional[List[ExtractedEntity]] = None,
         insert_vector: bool = True,
-    ) -> None:
-        """Process one chunk while keeping Ollama extraction sequential."""
+        defer_persistence: bool = False,
+    ) -> List[StagingRecord]:
+        """Process one chunk while keeping Ollama extraction sequential.
+
+        ``defer_persistence`` is used only by the asynchronous job seam. Direct
+        callers retain the existing immediate staging/vector behavior.
+        """
         chunk_start_time = time.time()
 
         # Step 2: Extract entities, or use the bounded parallel preprocessing result.
@@ -595,6 +701,7 @@ class IngestionPipeline:
 
         # Step 5: Validate triples with SHACL and classify
         logger.debug(f"Validating {len(triples)} triples with SHACL")
+        staging_records: List[StagingRecord] = []
         for triple in triples:
             # Use SHACL validator's classification method
             (
@@ -639,13 +746,16 @@ class IngestionPipeline:
                 },
             )
 
-            # Send to the compliance staging manager (HITL workflow).
-            # The default adapter keeps VALID candidates pending until a reviewer acts.
-            self.staging_manager.add_record(staging_record)
+            # Send to the compliance staging manager (HITL workflow), or return
+            # the record to the job coordinator for durable per-chunk writes.
+            if defer_persistence:
+                staging_records.append(staging_record)
+            else:
+                self.staging_manager.add_record(staging_record)
 
         # Step 6: Batch vector insertion is handled by _process_chunk_batch.
         # Keep the direct method useful for callers that process one chunk.
-        if insert_vector:
+        if insert_vector and not defer_persistence:
             self._insert_chunk_batch(
                 [chunk], getattr(self, "performance_monitor", PerformanceMonitor())
             )
@@ -656,6 +766,7 @@ class IngestionPipeline:
             f"(entities: {len(entities)}, triples: {len(triples)}, "
             f"valid: {self.metrics.valid_triples}, quarantined: {self.metrics.quarantined_triples})"
         )
+        return staging_records
 
     def _verify_evidence_grounding(
         self, triple: ExtractedTriple, original_text: str

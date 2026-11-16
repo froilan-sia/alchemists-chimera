@@ -17,7 +17,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, BinaryIO, Callable, Dict, Generator, List, Optional, Tuple
 
 from pydantic import BaseModel, Field, ValidationError
 from pypdf import PdfReader
@@ -372,81 +372,160 @@ class PDFParser:
         """
         return f"{document_id}-page{page_num + 1:03d}-chunk{chunk_index:03d}"
 
-    def parse_pdf_streaming(self, pdf_path: Path) -> Generator[PDFChunk, None, None]:
-        """Parse PDF file and yield chunks as they're generated.
-
-        This is useful for large documents to avoid memory issues.
-
-        Args:
-            pdf_path: Path to PDF file
-
-        Yields:
-            PDFChunk objects as they're generated
-
-        Raises:
-            PDFParserError: If PDF parsing fails
-            FileNotFoundError: If PDF file doesn't exist
-        """
+    def parse_pdf_streaming(
+        self,
+        pdf_path: Path,
+        progress_sink: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ) -> Generator[PDFChunk, None, None]:
+        """Parse a filesystem PDF incrementally with optional progress events."""
         if not pdf_path.exists():
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-
         try:
-            logger.info(f"Stream parsing PDF: {pdf_path}")
-
             with open(pdf_path, "rb") as file:
-                reader = PdfReader(file)
-
-                # Get document metadata
-                document_id = self._generate_document_id(pdf_path, reader)
-                document_name = pdf_path.name
-                total_pages = len(reader.pages)
-
-                logger.info(f"Document ID: {document_id}, Total pages: {total_pages}")
-
-                pages_to_process = min(
-                    self.config.max_pages or total_pages, total_pages
+                yield from self._parse_seekable(
+                    file,
+                    document_name=pdf_path.name,
+                    document_id=self._generate_document_id_from_path(pdf_path, file),
+                    source_label=str(pdf_path),
+                    progress_sink=progress_sink,
                 )
+        except (FileNotFoundError, PDFParserError):
+            raise
+        except Exception as error:
+            logger.error("Failed to stream parse PDF %s: %s", pdf_path, error)
+            raise PDFParserError(f"Failed to stream parse PDF {pdf_path}: {error}") from error
 
-                for page_num in range(pages_to_process):
-                    logger.debug(
-                        f"Stream processing page {page_num + 1}/{pages_to_process}"
+    def parse_seekable_stream(
+        self,
+        stream: BinaryIO,
+        document_name: str,
+        source_hash: Optional[str] = None,
+        progress_sink: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ) -> Generator[PDFChunk, None, None]:
+        """Parse an already-spooled seekable stream without retaining all chunks."""
+        try:
+            if not stream.seekable():
+                raise PDFParserError("PDF source must be seekable before parsing")
+            stream.seek(0)
+            reader = PdfReader(stream)
+            document_id = self._generate_stream_document_id(
+                document_name, source_hash, reader
+            )
+            yield from self._parse_reader(
+                reader,
+                document_name=document_name,
+                document_id=document_id,
+                source_label=document_name,
+                progress_sink=progress_sink,
+            )
+        except PDFParserError:
+            raise
+        except Exception as error:
+            logger.error("Failed to parse seekable PDF %s: %s", document_name, error)
+            raise PDFParserError(
+                f"Failed to parse seekable PDF {document_name}: {error}"
+            ) from error
+
+    def _parse_seekable(
+        self,
+        stream: BinaryIO,
+        document_name: str,
+        document_id: str,
+        source_label: str,
+        progress_sink: Optional[Callable[[Dict[str, Any]], None]],
+    ) -> Generator[PDFChunk, None, None]:
+        """Build a reader over a seekable source and emit its chunks."""
+        stream.seek(0)
+        reader = PdfReader(stream)
+        yield from self._parse_reader(
+            reader, document_name, document_id, source_label, progress_sink
+        )
+
+    def _parse_reader(
+        self,
+        reader: PdfReader,
+        document_name: str,
+        document_id: str,
+        source_label: str,
+        progress_sink: Optional[Callable[[Dict[str, Any]], None]],
+    ) -> Generator[PDFChunk, None, None]:
+        """Yield chunks from a reader while reporting page and chunk progress."""
+        total_pages = len(reader.pages)
+        pages_to_process = min(self.config.max_pages or total_pages, total_pages)
+        chunks_discovered = 0
+        self._emit_progress(progress_sink, pages_processed=0, pages_total=pages_to_process,
+                             chunks_discovered=0)
+        for page_num in range(pages_to_process):
+            try:
+                page_chunks = self._process_page(
+                    reader=reader,
+                    page_num=page_num,
+                    document_id=document_id,
+                    document_name=document_name,
+                    total_pages=total_pages,
+                )
+                chunks_discovered += len(page_chunks)
+                for chunk in page_chunks:
+                    self._emit_progress(
+                        progress_sink,
+                        pages_processed=page_num,
+                        pages_total=pages_to_process,
+                        chunks_discovered=chunks_discovered,
+                        chunk_id=chunk.id,
                     )
+                    yield chunk
+                self._emit_progress(
+                    progress_sink,
+                    pages_processed=page_num + 1,
+                    pages_total=pages_to_process,
+                    chunks_discovered=chunks_discovered,
+                )
+            except Exception as error:
+                diagnostic = {
+                    "component": "pdf_parser",
+                    "path": source_label,
+                    "page": page_num + 1,
+                    "error": str(error),
+                    "severity": "WARNING",
+                    "timestamp": datetime.now().isoformat(),
+                }
+                self.last_errors.append(diagnostic)
+                self._emit_progress(
+                    progress_sink,
+                    pages_processed=page_num + 1,
+                    pages_total=pages_to_process,
+                    chunks_discovered=chunks_discovered,
+                    diagnostic={
+                        "code": "PDF_PAGE_SKIPPED",
+                        "stage": "parsing",
+                        "message": f"Page {page_num + 1} could not be read; processing continued.",
+                        "retryable": False,
+                    },
+                )
+                logger.warning("Skipping unreadable page %s in %s: %s", page_num + 1, source_label, error)
 
-                    try:
-                        page_chunks = self._process_page(
-                            reader=reader,
-                            page_num=page_num,
-                            document_id=document_id,
-                            document_name=document_name,
-                            total_pages=total_pages,
-                        )
+    @staticmethod
+    def _emit_progress(
+        progress_sink: Optional[Callable[[Dict[str, Any]], None]], **event: Any
+    ) -> None:
+        """Send a progress event without making callbacks part of parser semantics."""
+        if progress_sink is not None:
+            progress_sink(event)
 
-                        for chunk in page_chunks:
-                            yield chunk
+    def _generate_document_id_from_path(self, pdf_path: Path, stream: BinaryIO) -> str:
+        """Preserve the legacy path-based document ID for direct callers."""
+        reader = PdfReader(stream)
+        return self._generate_document_id(pdf_path, reader)
 
-                        # Progress logging
-                        if (page_num + 1) % 10 == 0 or (
-                            page_num + 1
-                        ) == pages_to_process:
-                            logger.info(
-                                f"Stream processed {page_num + 1}/{pages_to_process} pages"
-                            )
-
-                    except Exception as e:
-                        self.last_errors.append({
-                            "component": "pdf_parser",
-                            "path": str(pdf_path),
-                            "page": page_num + 1,
-                            "error": str(e),
-                            "severity": "WARNING",
-                            "timestamp": datetime.now().isoformat(),
-                        })
-                        logger.warning("Skipping unreadable streamed page %s in %s: %s", page_num + 1, pdf_path, e)
-                        continue
-
-        except Exception as e:
-            logger.error(f"Failed to stream parse PDF {pdf_path}: {e}")
-            raise PDFParserError(f"Failed to stream parse PDF {pdf_path}: {e}")
+    def _generate_stream_document_id(
+        self, document_name: str, source_hash: Optional[str], reader: PdfReader
+    ) -> str:
+        """Generate a stable ID for a spooled upload independent of its local path."""
+        digest = source_hash or hashlib.sha256(document_name.encode("utf-8")).hexdigest()
+        metadata = reader.metadata or {}
+        title = metadata.get("/Title", "")
+        clean = "".join(filter(str.isalnum, document_name.rsplit(".", 1)[0])) or "document"
+        return f"{digest[:16]}-{clean[:20]}-{''.join(filter(str.isalnum, str(title)))[:10]}".lower()
 
     @classmethod
     def create_default_parser(cls) -> "PDFParser":
