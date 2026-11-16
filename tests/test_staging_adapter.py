@@ -62,7 +62,7 @@ def test_approval_flag_is_accepted_by_both_adapter_entry_points(
 def test_surgeons_table_pipeline_factory_reaches_staging_startup_regression(
     tmp_path: Path,
 ):
-    """The Surgeon’s Table factory seam fails before staging on the unfixed adapter."""
+    """The Surgeon’s Table factory seam reaches staging startup successfully."""
 
     class StartupPipeline:
         """Lightweight pipeline double matching render_surgeons_table’s factory seam."""
@@ -79,8 +79,10 @@ def test_surgeons_table_pipeline_factory_reaches_staging_startup_regression(
         assert chunk_overlap == 200
         return StartupPipeline(tmp_path / "surgeons-staging")
 
-    with pytest.raises(TypeError, match="require_human_approval"):
-        pipeline_factory(chunk_size=1000, chunk_overlap=200)
+    result = pipeline_factory(chunk_size=1000, chunk_overlap=200)
+
+    assert isinstance(result, StartupPipeline)
+    assert result.staging_manager.comprehensive_manager.require_human_approval is True
 
 
 @st.composite

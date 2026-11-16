@@ -3,7 +3,7 @@
   "hooks": [
     {
       "name": "Commit Changes After Task Completion",
-      "trigger": "PostTaskExecution",
+      "trigger": "PostTaskExec",
       "description": "Automatically stages and commits repository changes after a Kiro spec task completes.",
       "action": {
         "type": "command",

@@ -66,7 +66,7 @@ This plan fixes the staging adapter constructor incompatibility that blocks the 
     - **EXPECTED OUTCOME**: Tests PASS, confirming no regressions outside the constructor bug.
     - _Requirements: 2.3, 3.1, 3.2, 3.3, 3.4_
 
-- [-] 4. Checkpoint - Run the full test suite
+- [x] 4. Checkpoint - Run the full test suite
   - Run `pytest -q` from the repository root after tasks 3.3 and 3.4 pass.
   - If `pytest` is not on `PATH`, run the repository-equivalent available command, preferably `python -m pytest -q`, and record the exact fallback command used.
   - Confirm the focused staging adapter tests, the Surgeon’s Table tests, the pipeline-related tests, and all existing tests pass together.
