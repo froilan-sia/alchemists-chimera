@@ -1,0 +1,77 @@
+{
+  "pbtResults": {
+    "1. Write the bug-condition exploration test before changing fixtures": {
+      "status": "passed",
+      "failingExample": "Expected exploration failure from pytest: data/input/hkma_capital_requirements.pdf starts with 'HKMA Supervisory Policy Manual SA-2: Capital Adequacy Requirements', starts_with_pdf=False, bytes=5358, sha256=45812d239aea4092387bee3939d6cfb2812edbfe308c07e99d031d2997544426, reader_error=\"PdfReadError: PDF starts with 'HKMA ', but '%PDF-' expected\", page_count=0, extracted_text_empty=True; data/input/basel_iii_framework.pdf starts with 'Basel III: International Regulatory Framework for Banks', starts_with_pdf=False, bytes=5163, sha256=e9b8eb8c9e6de16fe039bc2fe1d3101d9364d25a5c7d35a0e96a1c4467186131, reader_error=\"PdfReadError: PDF starts with 'Basel', but '%PDF-' expected\", page_count=0, extracted_text_empty=True; data/input/risk_weighted_assets.pdf starts with 'Risk-Weighted Assets: Calculation Methodology and Regulatory Requirements', starts_with_pdf=False, bytes=4795, sha256=19e1eff663e8e0810538499227c12a6317cf8d2d724b3ae1a389668aaf03f871, reader_error=\"PdfReadError: PDF starts with 'Risk-', but '%PDF-' expected\", page_count=0, extracted_text_empty=True.",
+      "lastRunTimestamp": 1794828076053
+    }
+  },
+  "executionHistory": {
+    "1. Write the bug-condition exploration test before changing fixtures": [
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794827940183
+      },
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794827949490
+      },
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794828118214
+      }
+    ],
+    "2. Write preservation and regression property tests before implementing the fix": [
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794827940222
+      }
+    ],
+    "3.1 Capture canonical source fixtures and implement the generator": [
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794827940253
+      }
+    ],
+    "3.2 Generate replacements only for the named fixture paths": [
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794827940299
+      }
+    ],
+    "3.3 Add and run focused fix-validation and deterministic-generation tests": [
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794827940381
+      }
+    ],
+    "3.4 Verify the bug-condition exploration test now passes": [
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794827940421
+      }
+    ],
+    "3.5 Verify preservation tests still pass": [
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794827940454
+      }
+    ],
+    "4. Checkpoint - Perform final local verification": [
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794827940497
+      }
+    ]
+  }
+}
