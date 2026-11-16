@@ -41,7 +41,7 @@ This plan fixes the unsupported task-completion trigger in `.kiro/hooks/auto-com
     - _Preservation: Change no field or file outside the invalid trigger value in the affected hook._
     - _Requirements: 2.1, 2.2, 2.3, 3.1, 3.2, 3.3_
 
-  - [~] 3.2 Run the focused hook verification
+  - [x] 3.2 Run the focused hook verification
     - **Property 1: Expected Behavior** - Corrected task-completion hook passes supported-trigger validation
     - **IMPORTANT**: Re-run the existing focused validation; do not modify or replace the test.
     - Run exactly: `PYTHONPATH=. pytest tests/test_kiro_hooks.py`
