@@ -118,6 +118,16 @@
         "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
         "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
         "timestamp": 1794827940454
+      },
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794830144657
+      },
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794830244195
       }
     ],
     "4. Checkpoint - Perform final local verification": [
@@ -125,6 +135,13 @@
         "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
         "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
         "timestamp": 1794827940497
+      }
+    ],
+    "3. Repair the three invalid PDF fixtures with deterministic local generation": [
+      {
+        "executionId": "3b9fe8b5-fe29-431e-ba0a-15a48cd61fa0",
+        "chatSessionId": "sess_58d658e8-910d-409f-98a9-e90bf51afa66",
+        "timestamp": 1794830244235
       }
     ]
   }

@@ -28,7 +28,7 @@ This plan repairs the three malformed regulatory PDF fixtures through canonical 
   - **EXPECTED OUTCOME**: Preservation tests pass on the unfixed checkout and establish the baseline to retain after fixture repair.
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.6_
 
-- [ ] 3. Repair the three invalid PDF fixtures with deterministic local generation
+- [x] 3. Repair the three invalid PDF fixtures with deterministic local generation
 
   - [x] 3.1 Capture canonical source fixtures and implement the generator
     - Create `data/input/fixture_sources/hkma_capital_requirements.txt`, `data/input/fixture_sources/basel_iii_framework.txt`, and `data/input/fixture_sources/risk_weighted_assets.txt` as byte-for-byte UTF-8 copies of the three pre-fix `.pdf` text payloads captured in task 1.
@@ -69,7 +69,7 @@ This plan repairs the three malformed regulatory PDF fixtures through canonical 
     - **EXPECTED OUTCOME**: The same test that failed on the unfixed checkout passes after generation, demonstrating that every scoped counterexample is repaired.
     - _Requirements: 2.1, 2.2, 2.3, 2.5_
 
-  - [~] 3.5 Verify preservation tests still pass
+  - [x] 3.5 Verify preservation tests still pass
     - **Property 2: Preservation** - Existing names, parser contracts, README content, and unrelated PDFs remain stable
     - Re-run the exact preservation tests from task 2; do not write replacement tests.
     - Confirm the README still resolves the same three filenames, parser behavior and metadata semantics remain compatible, unrelated PDFs remain unchanged and readable, and no network access is required.
