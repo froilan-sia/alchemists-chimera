@@ -8,10 +8,10 @@ source files are never modified.
 from __future__ import annotations
 
 import argparse
+import math
 import textwrap
 from pathlib import Path
 from typing import Mapping, Sequence
-
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE_DIRECTORY = REPOSITORY_ROOT / "data" / "input" / "fixture_sources"
@@ -33,8 +33,42 @@ FONT_SIZE = 10
 LEADING = 14
 MAX_LINE_WIDTH = 88
 LINES_PER_PAGE = 48
-FONT_OBJECT_NUMBER = 3
 PDF_HEADER = b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"
+WATERMARK_TEXT = "FICTIONAL DOCUMENT - for demo purpose only"
+WATERMARK_GRAY = 0.58
+WATERMARK_ALPHA = 0.20
+WATERMARK_ANGLE_DEGREES = 35.0
+WATERMARK_GLYPHS: dict[str, tuple[str, ...]] = {
+    "A": ("01110", "10001", "10001", "11111", "10001", "10001", "10001"),
+    "C": ("01111", "10000", "10000", "10000", "10000", "10000", "01111"),
+    "D": ("11110", "10001", "10001", "10001", "10001", "10001", "11110"),
+    "E": ("11111", "10000", "10000", "11110", "10000", "10000", "11111"),
+    "F": ("11111", "10000", "10000", "11110", "10000", "10000", "10000"),
+    "I": ("11111", "00100", "00100", "00100", "00100", "00100", "11111"),
+    "L": ("10000", "10000", "10000", "10000", "10000", "10000", "11111"),
+    "M": ("10001", "11011", "10101", "10101", "10001", "10001", "10001"),
+    "N": ("10001", "11001", "10101", "10011", "10001", "10001", "10001"),
+    "O": ("01110", "10001", "10001", "10001", "10001", "10001", "01110"),
+    "P": ("11110", "10001", "10001", "11110", "10000", "10000", "10000"),
+    "R": ("11110", "10001", "10001", "11110", "10100", "10010", "10001"),
+    "T": ("11111", "00100", "00100", "00100", "00100", "00100", "00100"),
+    "U": ("10001", "10001", "10001", "10001", "10001", "10001", "01110"),
+    "Y": ("10001", "10001", "01010", "00100", "00100", "00100", "00100"),
+    "a": ("00000", "00000", "01110", "00001", "01111", "10001", "01111"),
+    "d": ("00001", "00001", "01111", "10001", "10001", "10001", "01111"),
+    "e": ("00000", "00000", "01110", "10001", "11111", "10000", "01110"),
+    "f": ("00110", "01001", "01000", "11100", "01000", "01000", "01000"),
+    "m": ("00000", "00000", "11010", "10101", "10101", "10101", "10101"),
+    "n": ("00000", "00000", "11110", "10001", "10001", "10001", "10001"),
+    "o": ("00000", "00000", "01110", "10001", "10001", "10001", "01110"),
+    "l": ("01100", "00100", "00100", "00100", "00100", "00100", "01110"),
+    "p": ("00000", "00000", "11110", "10001", "11110", "10000", "10000"),
+    "r": ("00000", "00000", "10111", "11000", "10000", "10000", "10000"),
+    "s": ("00000", "00000", "01111", "10000", "01110", "00001", "11110"),
+    "u": ("00000", "00000", "10001", "10001", "10001", "10011", "01101"),
+    "y": ("00000", "00000", "10001", "10001", "01111", "00001", "01110"),
+    "-": ("00000", "00000", "00000", "11111", "00000", "00000", "00000"),
+}
 
 
 class FixtureGenerationError(RuntimeError):
@@ -112,9 +146,109 @@ def _escape_pdf_literal(value: str) -> bytes:
     return bytes(escaped)
 
 
+def _watermark_content(page_width: float, page_height: float) -> bytes:
+    """Build a non-extractable, diagonal vector watermark content stream.
+
+    The lettering uses simple vector glyphs instead of a PDF text operator.  It
+    therefore remains visible in PDF viewers without being added to extracted
+    regulatory text or parser chunks.
+    """
+    text_width_units = sum(4 if character == " " else 6 for character in WATERMARK_TEXT)
+    angle = math.radians(WATERMARK_ANGLE_DEGREES)
+    cosine = math.cos(angle)
+    sine = math.sin(angle)
+    watermark_height_units = 7
+    scale = min(
+        3.2,
+        0.9 * page_width / (cosine * text_width_units + sine * watermark_height_units),
+    )
+    rotated_width = scale * (cosine * text_width_units + sine * watermark_height_units)
+    rotated_height = scale * (sine * text_width_units + cosine * watermark_height_units)
+    translate_x = (
+        page_width - rotated_width
+    ) / 2 + sine * scale * watermark_height_units
+    translate_y = (page_height - rotated_height) / 2
+
+    content = bytearray()
+    content.extend(f"% {WATERMARK_TEXT}\nq\n/GS1 gs\n".encode("ascii"))
+    content.extend(
+        f"{WATERMARK_GRAY:.3f} {WATERMARK_GRAY:.3f} {WATERMARK_GRAY:.3f} sc\n".encode(
+            "ascii"
+        )
+    )
+    content.extend(
+        f"{scale * cosine:.6f} {scale * sine:.6f} "
+        f"{-scale * sine:.6f} {scale * cosine:.6f} "
+        f"{translate_x:.6f} {translate_y:.6f} cm\n".encode("ascii")
+    )
+
+    cursor = 0
+    for character in WATERMARK_TEXT:
+        if character == " ":
+            cursor += 4
+            continue
+        glyph = WATERMARK_GLYPHS[character]
+        for row, glyph_row in enumerate(glyph):
+            for column, pixel in enumerate(glyph_row):
+                if pixel == "1":
+                    content.extend(
+                        f"{cursor + column} {6 - row} 1 1 re\n".encode("ascii")
+                    )
+        cursor += 6
+
+    content.extend(b"f\nQ\n")
+    return bytes(content)
+
+
+def build_watermark_pdf(page_width: float, page_height: float) -> bytes:
+    """Build a one-page PDF overlay for an arbitrary page size."""
+    page_content = _watermark_content(page_width, page_height)
+    page_object = (
+        "<< /Type /Page /Parent 2 0 R "
+        f"/MediaBox [0 0 {page_width:g} {page_height:g}] "
+        "/Resources << /ExtGState << /GS1 3 0 R >> >> "
+        "/Contents 5 0 R >>"
+    ).encode("ascii")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [4 0 R] /Count 1 >>",
+        f"<< /Type /ExtGState /CA {WATERMARK_ALPHA:.3f} /ca {WATERMARK_ALPHA:.3f} >>".encode(
+            "ascii"
+        ),
+        page_object,
+        f"<< /Length {len(page_content)} >>\nstream\n".encode("ascii")
+        + page_content
+        + b"endstream",
+    ]
+    return _serialize_pdf_objects(objects)
+
+
+def _serialize_pdf_objects(objects: Sequence[bytes]) -> bytes:
+    """Serialize an ordered list of PDF objects with a classic xref table."""
+    payload = bytearray(PDF_HEADER)
+    offsets = [0]
+    for object_number, object_body in enumerate(objects, start=1):
+        offsets.append(len(payload))
+        payload.extend(f"{object_number} 0 obj\n".encode("ascii"))
+        payload.extend(object_body)
+        payload.extend(b"\nendobj\n")
+
+    xref_offset = len(payload)
+    payload.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    payload.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        payload.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    payload.extend(
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
+        f"startxref\n{xref_offset}\n%%EOF\n".encode("ascii")
+    )
+    return bytes(payload)
+
+
 def _page_content(lines: Sequence[str]) -> bytes:
-    """Build one deterministic text content stream."""
-    content = bytearray(
+    """Build one deterministic text content stream with a watermark beneath it."""
+    content = bytearray(_watermark_content(PAGE_WIDTH, PAGE_HEIGHT))
+    content.extend(
         f"BT\n/F1 {FONT_SIZE} Tf\n{LEADING} TL\n"
         f"{LEFT_MARGIN} {PAGE_HEIGHT - TOP_MARGIN} Td\n".encode("ascii")
     )
@@ -130,14 +264,16 @@ def _page_content(lines: Sequence[str]) -> bytes:
 
 def _objects_for_pages(pages: Sequence[Sequence[str]]) -> list[bytes]:
     """Return PDF objects in a stable, fully explicit order."""
-    page_object_numbers = [4 + page_index * 2 for page_index in range(len(pages))]
-    content_object_numbers = [number + 1 for number in page_object_numbers]
+    page_object_numbers = [5 + page_index * 2 for page_index in range(len(pages))]
     kids = " ".join(f"{number} 0 R" for number in page_object_numbers)
 
     objects: list[bytes] = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
         f"<< /Type /Pages /Kids [{kids}] /Count {len(pages)} >>".encode("ascii"),
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+        f"<< /Type /ExtGState /CA {WATERMARK_ALPHA:.3f} /ca {WATERMARK_ALPHA:.3f} >>".encode(
+            "ascii"
+        ),
     ]
 
     for page_number, page_lines in zip(page_object_numbers, pages):
@@ -145,7 +281,8 @@ def _objects_for_pages(pages: Sequence[Sequence[str]]) -> list[bytes]:
         page_object = (
             "<< /Type /Page /Parent 2 0 R "
             f"/MediaBox [0 0 {PAGE_WIDTH} {PAGE_HEIGHT}] "
-            f"/Resources << /Font << /F1 {FONT_OBJECT_NUMBER} 0 R >> >> "
+            f"/Resources << /Font << /F1 3 0 R >> "
+            f"/ExtGState << /GS1 4 0 R >> >> "
             f"/Contents {content_number} 0 R >>"
         )
         page_content = _page_content(page_lines)
@@ -154,36 +291,15 @@ def _objects_for_pages(pages: Sequence[Sequence[str]]) -> list[bytes]:
             + page_content
             + b"endstream"
         )
-        # Page and stream objects alternate in page order.
         objects.extend([page_object.encode("ascii"), content_object])
 
     return objects
 
 
 def build_pdf(source_text: str) -> bytes:
-    """Serialize source text as a deterministic, self-contained PDF 1.4."""
+    """Serialize source text and its watermark as a deterministic PDF 1.4."""
     pages = _paginate(_wrapped_lines(source_text))
-    objects = _objects_for_pages(pages)
-
-    payload = bytearray(PDF_HEADER)
-    offsets = [0]
-    for object_number, object_body in enumerate(objects, start=1):
-        offsets.append(len(payload))
-        payload.extend(f"{object_number} 0 obj\n".encode("ascii"))
-        payload.extend(object_body)
-        payload.extend(b"\nendobj\n")
-
-    xref_offset = len(payload)
-    payload.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
-    payload.extend(b"0000000000 65535 f \n")
-    for offset in offsets[1:]:
-        payload.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
-
-    payload.extend(
-        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
-        f"startxref\n{xref_offset}\n%%EOF\n".encode("ascii")
-    )
-    return bytes(payload)
+    return _serialize_pdf_objects(_objects_for_pages(pages))
 
 
 def _validate_mapping(mapping: Mapping[str, str]) -> None:
@@ -238,8 +354,16 @@ def generate_fixtures(
     active_mapping = mapping if mapping is not None else FIXTURE_MAPPING
     _validate_mapping(active_mapping)
 
-    destination = Path(output_directory) if output_directory is not None else DEFAULT_OUTPUT_DIRECTORY
-    sources = Path(source_directory) if source_directory is not None else DEFAULT_SOURCE_DIRECTORY
+    destination = (
+        Path(output_directory)
+        if output_directory is not None
+        else DEFAULT_OUTPUT_DIRECTORY
+    )
+    sources = (
+        Path(source_directory)
+        if source_directory is not None
+        else DEFAULT_SOURCE_DIRECTORY
+    )
     destination.mkdir(parents=True, exist_ok=True)
 
     generated: list[Path] = []

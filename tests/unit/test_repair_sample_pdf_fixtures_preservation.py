@@ -24,7 +24,6 @@ from pypdf import PdfReader
 
 from src.ingestor.pdf_parser import PDFParser, PDFParserError
 
-
 REPOSITORY_ROOT = Path(__file__).parents[2]
 INPUT_DIRECTORY = REPOSITORY_ROOT / "data" / "input"
 README_PATH = INPUT_DIRECTORY / "SAMPLE_DATA_README.md"
@@ -74,22 +73,21 @@ README_REQUIREMENTS = (
     "Verify air-gapped operation",
 )
 
-# Baselines are captured from the unfixed checkout.  These values make a later
-# fixture-generation run fail loudly if it rewrites an unrelated artifact.
+# These baselines cover the two pre-existing PDFs that are now included in
+# the requested watermark set.  They make accidental rewrites observable while
+# recording their new valid, standalone PDF behavior.
 UNRELATED_FIXTURE_BASELINES = {
     "sample.pdf": {
-        "sha256": "ef3af84b56084609a439b4f3412cc6996e364882b936b3efc2d676786342e944",
-        "size": 2507316,
+        "sha256": "49f6da1182995d3b9e0381f194423279c5e5043385cb3998f4505f6616bfe893",
+        "size": 10354002,
         "pdf_readable": True,
         "parser_readable": True,
     },
     "test_hkma_basel.pdf": {
-        "sha256": "d5c0e29b0044a58a0912d939ab8e26eb6c9e36cfb36042072cc5554dbc8e8126",
-        "size": 1923,
-        # This existing text fixture is intentionally outside the named repair
-        # set.  Its failed PDF/parser behavior is part of the observed baseline.
-        "pdf_readable": False,
-        "parser_readable": False,
+        "sha256": "49d668dd22a936a6f7adc729fe1ea6fb7eb8050df8b5c27a1bd578a42b780fa6",
+        "size": 15665,
+        "pdf_readable": True,
+        "parser_readable": True,
     },
 }
 
@@ -261,6 +259,7 @@ def test_pdf_parser_public_contract_is_preserved_on_valid_pdf():
 
 def test_preservation_checks_require_no_network_or_external_pdf_services(monkeypatch):
     """Local validation succeeds when common network boundaries are blocked."""
+
     def deny_network(*args, **kwargs):
         raise AssertionError("preservation checks attempted network access")
 
