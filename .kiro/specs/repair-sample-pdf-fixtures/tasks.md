@@ -76,7 +76,7 @@ This plan repairs the three malformed regulatory PDF fixtures through canonical 
     - **EXPECTED OUTCOME**: All preservation tests pass after the repair, demonstrating no regression outside the bug condition.
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.6_
 
-- [~] 4. Checkpoint - Perform final local verification
+- [x] 4. Checkpoint - Perform final local verification
   - Depends on tasks 1 through 3.5 being complete.
   - Run the focused fixture test module, the bug-condition exploration test, the preservation property tests, and the relevant existing parser tests in one offline-capable test command.
   - Inspect the final change set to confirm it contains only the three canonical source fixtures, the deterministic generator, focused regression tests, and the three repaired PDF artifacts; no README, parser, unrelated PDF, or application implementation changes are included.
