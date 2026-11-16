@@ -41,7 +41,7 @@ This plan repairs the three malformed regulatory PDF fixtures through canonical 
     - _Preservation: Keep `SAMPLE_DATA_README.md`, `src/ingestor/pdf_parser.py`, unrelated PDFs, ontology data, and ingestion configuration unchanged.
     - _Requirements: 1.4, 2.1, 2.2, 2.3, 2.4, 3.6_
 
-  - [~] 3.2 Generate replacements only for the named fixture paths
+  - [x] 3.2 Generate replacements only for the named fixture paths
     - Run the generator once after canonical source capture to replace `data/input/hkma_capital_requirements.pdf`, `data/input/basel_iii_framework.pdf`, and `data/input/risk_weighted_assets.pdf` with generated PDFs.
     - Confirm the generator writes no other tracked file and does not rename the fixtures, edit the README, modify `src/ingestor/pdf_parser.py`, or rewrite `data/input/sample.pdf` or `data/input/test_hkma_basel.pdf`.
     - Verify extracted text retains the required subject matter and markers: HKMA capital adequacy and `4.5%`, `6.0%`, `8.0%`, `2.5%`, `3%`, `100%`; Basel III international requirements, `72.5%`, `G-SIBs`, and `D-SIBs`; and risk-weighted-assets credit, market, and operational risk with `PD`, `LGD`, `EAD`, `15%`, and `1,250%`.

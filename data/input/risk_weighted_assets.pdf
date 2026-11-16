@@ -1,119 +1,348 @@
-Risk-Weighted Assets: Calculation Methodology and Regulatory Requirements
-
-Financial Stability Board
-Guidance on Risk-Weighted Assets Calculation
-
-1. Introduction
-Risk-weighted assets (RWA) form the denominator in capital adequacy ratios and are a key component of the Basel regulatory framework. This document outlines the methodologies for calculating RWA for credit risk, market risk, and operational risk.
-
-2. Credit Risk RWA
-2.1 Standardized Approach
-Under the standardized approach, banks assign risk weights to assets based on external credit assessments or prescribed regulatory risk weights.
-
-2.1.1 Sovereign Exposures
-- AAA to AA-: 0%
-- A+ to A-: 20%
-- BBB+ to BBB-: 50%
-- BB+ to B-: 100%
-- Below B-: 150%
-- Unrated: 100%
-
-2.1.2 Bank Exposures
-- Option 1: Risk weight based on sovereign rating of country of incorporation
-- Option 2: Risk weight based on external credit assessment of bank
-
-2.1.3 Corporate Exposures
-- AAA to AA-: 20%
-- A+ to A-: 50%
-- BBB+ to BB-: 100%
-- Below BB-: 150%
-- Unrated: 100%
-
-2.2 Foundation Internal Ratings-Based (F-IRB) Approach
-Banks using the F-IRB approach estimate the probability of default (PD) for each exposure, while the regulator provides other risk parameters.
-
-2.3 Advanced Internal Ratings-Based (A-IRB) Approach
-Banks using the A-IRB approach estimate all risk parameters: PD, loss given default (LGD), exposure at default (EAD), and effective maturity (M).
-
-3. Market Risk RWA
-3.1 Standardized Approach for Market Risk
-The standardized approach uses prescribed risk weights for interest rate risk, equity risk, foreign exchange risk, commodity risk, and credit spread risk.
-
-3.2 Internal Models Approach (IMA)
-Banks using IMA calculate market risk capital requirements based on value-at-risk (VaR) and expected shortfall (ES) models.
-
-4. Operational Risk RWA
-4.1 Basic Indicator Approach (BIA)
-Operational risk capital = 15% of average annual gross income over previous three years.
-
-4.2 Standardized Approach (TSA)
-Operational risk capital calculated by applying regulatory factors to business line gross income.
-
-4.3 Advanced Measurement Approach (AMA)
-Banks using AMA develop internal models to estimate operational risk capital.
-
-5. Securitization Exposures
-5.1 Securitization Framework
-The securitization framework includes the standardized approach, external ratings-based approach, and internal assessment approach.
-
-5.2 Risk Weights
-Risk weights for securitization exposures range from 20% to 1,250% based on external ratings or internal assessments.
-
-6. Counterparty Credit Risk
-6.1 Current Exposure Method (CEM)
-The CEM calculates counterparty credit risk exposures for derivatives and securities financing transactions.
-
-6.2 Standardized Approach for Counterparty Credit Risk (SA-CCR)
-SA-CCR provides a more risk-sensitive method for calculating counterparty credit risk exposures.
-
-6.3 Internal Model Method (IMM)
-Banks using IMM calculate counterparty credit risk exposures using internal models.
-
-7. Credit Risk Mitigation
-7.1 Eligible Collateral
-- Cash
-- Gold
-- Debt securities
-- Equities
-- UCITS units
-- Mutual fund units
-
-7.2 Financial Guarantees
-Credit protection provided by eligible guarantors can reduce risk weights.
-
-8. RWA Reporting Requirements
-8.1 Regulatory Reporting
-Banks must report RWA calculations to regulators on a quarterly basis, including breakdowns by risk type and approach.
-
-8.2 Public Disclosure
-Banks must publicly disclose RWA amounts and key risk parameters as part of Pillar 3 requirements.
-
-9. Validation and Review
-9.1 Model Validation
-Banks using internal models must establish comprehensive validation frameworks, including back-testing and stress testing.
-
-9.2 Supervisory Review
-Regulators review RWA calculations and models as part of the supervisory review process (Pillar 2).
-
-10. Recent Developments
-10.1 Basel III Revisions
-Recent Basel III revisions aim to reduce excessive variability in RWA calculations and improve comparability across banks.
-
-10.2 Output Floor
-The output floor limits the extent to which banks can use internal models to reduce RWA relative to the standardized approach.
-
-11. Implementation Challenges
-11.1 Data Requirements
-RWA calculations require comprehensive data on exposures, collateral, and risk parameters.
-
-11.2 System Integration
-Banks must integrate RWA calculation systems with risk management, finance, and regulatory reporting systems.
-
-12. Conclusion
-Accurate calculation of risk-weighted assets is essential for determining capital adequacy and ensuring the resilience of the banking system. Banks must maintain robust methodologies, systems, and controls for RWA calculation and reporting.
-
-Financial Stability Board
-Basel Committee on Banking Supervision
-
-Publication Date: March 2015 (updated December 2017)
-Effective Date: January 1, 2022
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 2096 >>
+stream
+BT
+/F1 10 Tf
+14 TL
+72 720 Td
+(Risk-Weighted Assets: Calculation Methodology and Regulatory Requirements) Tj
+T*
+() Tj
+T*
+(Financial Stability Board) Tj
+T*
+(Guidance on Risk-Weighted Assets Calculation) Tj
+T*
+() Tj
+T*
+(1. Introduction) Tj
+T*
+(Risk-weighted assets \(RWA\) form the denominator in capital adequacy ratios and are a key) Tj
+T*
+(component of the Basel regulatory framework. This document outlines the methodologies) Tj
+T*
+(for calculating RWA for credit risk, market risk, and operational risk.) Tj
+T*
+() Tj
+T*
+(2. Credit Risk RWA) Tj
+T*
+(2.1 Standardized Approach) Tj
+T*
+(Under the standardized approach, banks assign risk weights to assets based on external) Tj
+T*
+(credit assessments or prescribed regulatory risk weights.) Tj
+T*
+() Tj
+T*
+(2.1.1 Sovereign Exposures) Tj
+T*
+(- AAA to AA-: 0%) Tj
+T*
+(- A+ to A-: 20%) Tj
+T*
+(- BBB+ to BBB-: 50%) Tj
+T*
+(- BB+ to B-: 100%) Tj
+T*
+(- Below B-: 150%) Tj
+T*
+(- Unrated: 100%) Tj
+T*
+() Tj
+T*
+(2.1.2 Bank Exposures) Tj
+T*
+(- Option 1: Risk weight based on sovereign rating of country of incorporation) Tj
+T*
+(- Option 2: Risk weight based on external credit assessment of bank) Tj
+T*
+() Tj
+T*
+(2.1.3 Corporate Exposures) Tj
+T*
+(- AAA to AA-: 20%) Tj
+T*
+(- A+ to A-: 50%) Tj
+T*
+(- BBB+ to BB-: 100%) Tj
+T*
+(- Below BB-: 150%) Tj
+T*
+(- Unrated: 100%) Tj
+T*
+() Tj
+T*
+(2.2 Foundation Internal Ratings-Based \(F-IRB\) Approach) Tj
+T*
+(Banks using the F-IRB approach estimate the probability of default \(PD\) for each) Tj
+T*
+(exposure, while the regulator provides other risk parameters.) Tj
+T*
+() Tj
+T*
+(2.3 Advanced Internal Ratings-Based \(A-IRB\) Approach) Tj
+T*
+(Banks using the A-IRB approach estimate all risk parameters: PD, loss given default) Tj
+T*
+(\(LGD\), exposure at default \(EAD\), and effective maturity \(M\).) Tj
+T*
+() Tj
+T*
+(3. Market Risk RWA) Tj
+T*
+(3.1 Standardized Approach for Market Risk) Tj
+T*
+(The standardized approach uses prescribed risk weights for interest rate risk, equity) Tj
+T*
+(risk, foreign exchange risk, commodity risk, and credit spread risk.) Tj
+T*
+() Tj
+T*
+(3.2 Internal Models Approach \(IMA\)) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 1989 >>
+stream
+BT
+/F1 10 Tf
+14 TL
+72 720 Td
+(Banks using IMA calculate market risk capital requirements based on value-at-risk \(VaR\)) Tj
+T*
+(and expected shortfall \(ES\) models.) Tj
+T*
+() Tj
+T*
+(4. Operational Risk RWA) Tj
+T*
+(4.1 Basic Indicator Approach \(BIA\)) Tj
+T*
+(Operational risk capital = 15% of average annual gross income over previous three years.) Tj
+T*
+() Tj
+T*
+(4.2 Standardized Approach \(TSA\)) Tj
+T*
+(Operational risk capital calculated by applying regulatory factors to business line) Tj
+T*
+(gross income.) Tj
+T*
+() Tj
+T*
+(4.3 Advanced Measurement Approach \(AMA\)) Tj
+T*
+(Banks using AMA develop internal models to estimate operational risk capital.) Tj
+T*
+() Tj
+T*
+(5. Securitization Exposures) Tj
+T*
+(5.1 Securitization Framework) Tj
+T*
+(The securitization framework includes the standardized approach, external ratings-based) Tj
+T*
+(approach, and internal assessment approach.) Tj
+T*
+() Tj
+T*
+(5.2 Risk Weights) Tj
+T*
+(Risk weights for securitization exposures range from 20% to 1,250% based on external) Tj
+T*
+(ratings or internal assessments.) Tj
+T*
+() Tj
+T*
+(6. Counterparty Credit Risk) Tj
+T*
+(6.1 Current Exposure Method \(CEM\)) Tj
+T*
+(The CEM calculates counterparty credit risk exposures for derivatives and securities) Tj
+T*
+(financing transactions.) Tj
+T*
+() Tj
+T*
+(6.2 Standardized Approach for Counterparty Credit Risk \(SA-CCR\)) Tj
+T*
+(SA-CCR provides a more risk-sensitive method for calculating counterparty credit risk) Tj
+T*
+(exposures.) Tj
+T*
+() Tj
+T*
+(6.3 Internal Model Method \(IMM\)) Tj
+T*
+(Banks using IMM calculate counterparty credit risk exposures using internal models.) Tj
+T*
+() Tj
+T*
+(7. Credit Risk Mitigation) Tj
+T*
+(7.1 Eligible Collateral) Tj
+T*
+(- Cash) Tj
+T*
+(- Gold) Tj
+T*
+(- Debt securities) Tj
+T*
+(- Equities) Tj
+T*
+(- UCITS units) Tj
+T*
+(- Mutual fund units) Tj
+T*
+() Tj
+T*
+(7.2 Financial Guarantees) Tj
+T*
+(Credit protection provided by eligible guarantors can reduce risk weights.) Tj
+T*
+() Tj
+T*
+(8. RWA Reporting Requirements) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 1970 >>
+stream
+BT
+/F1 10 Tf
+14 TL
+72 720 Td
+(8.1 Regulatory Reporting) Tj
+T*
+(Banks must report RWA calculations to regulators on a quarterly basis, including) Tj
+T*
+(breakdowns by risk type and approach.) Tj
+T*
+() Tj
+T*
+(8.2 Public Disclosure) Tj
+T*
+(Banks must publicly disclose RWA amounts and key risk parameters as part of Pillar 3) Tj
+T*
+(requirements.) Tj
+T*
+() Tj
+T*
+(9. Validation and Review) Tj
+T*
+(9.1 Model Validation) Tj
+T*
+(Banks using internal models must establish comprehensive validation frameworks,) Tj
+T*
+(including back-testing and stress testing.) Tj
+T*
+() Tj
+T*
+(9.2 Supervisory Review) Tj
+T*
+(Regulators review RWA calculations and models as part of the supervisory review process) Tj
+T*
+(\(Pillar 2\).) Tj
+T*
+() Tj
+T*
+(10. Recent Developments) Tj
+T*
+(10.1 Basel III Revisions) Tj
+T*
+(Recent Basel III revisions aim to reduce excessive variability in RWA calculations and) Tj
+T*
+(improve comparability across banks.) Tj
+T*
+() Tj
+T*
+(10.2 Output Floor) Tj
+T*
+(The output floor limits the extent to which banks can use internal models to reduce RWA) Tj
+T*
+(relative to the standardized approach.) Tj
+T*
+() Tj
+T*
+(11. Implementation Challenges) Tj
+T*
+(11.1 Data Requirements) Tj
+T*
+(RWA calculations require comprehensive data on exposures, collateral, and risk) Tj
+T*
+(parameters.) Tj
+T*
+() Tj
+T*
+(11.2 System Integration) Tj
+T*
+(Banks must integrate RWA calculation systems with risk management, finance, and) Tj
+T*
+(regulatory reporting systems.) Tj
+T*
+() Tj
+T*
+(12. Conclusion) Tj
+T*
+(Accurate calculation of risk-weighted assets is essential for determining capital) Tj
+T*
+(adequacy and ensuring the resilience of the banking system. Banks must maintain robust) Tj
+T*
+(methodologies, systems, and controls for RWA calculation and reporting.) Tj
+T*
+() Tj
+T*
+(Financial Stability Board) Tj
+T*
+(Basel Committee on Banking Supervision) Tj
+T*
+() Tj
+T*
+(Publication Date: March 2015 \(updated December 2017\)) Tj
+T*
+(Effective Date: January 1, 2022) Tj
+T*
+() Tj
+ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000133 00000 n 
+0000000230 00000 n 
+0000000356 00000 n 
+0000002503 00000 n 
+0000002629 00000 n 
+0000004669 00000 n 
+0000004795 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+6816
+%%EOF

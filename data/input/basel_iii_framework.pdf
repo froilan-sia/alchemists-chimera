@@ -1,96 +1,312 @@
-Basel III: International Regulatory Framework for Banks
-
-Basel Committee on Banking Supervision
-Basel III: A global regulatory framework for more resilient banks and banking systems
-
-1. Executive Summary
-Basel III is an international regulatory framework developed by the Basel Committee on Banking Supervision in response to the financial crisis of 2007-2009. The framework strengthens bank capital requirements, introduces new regulatory requirements on bank liquidity and leverage, and aims to improve the banking sector's ability to absorb shocks arising from financial and economic stress.
-
-2. Capital Requirements
-2.1 Enhanced Capital Quality
-Basel III emphasizes the quality of capital, with a greater focus on Common Equity Tier 1 (CET1) capital. CET1 capital must be loss-absorbing on a going-concern basis.
-
-2.2 Minimum Capital Ratios
-- Common Equity Tier 1 (CET1): 4.5% of risk-weighted assets
-- Tier 1 Capital: 6.0% of risk-weighted assets
-- Total Capital: 8.0% of risk-weighted assets
-
-2.3 Capital Conservation Buffer
-Banks must maintain a capital conservation buffer of 2.5% of risk-weighted assets, comprising CET1 capital. The buffer is designed to ensure banks build up capital buffers during normal times that can be drawn down in periods of stress.
-
-2.4 Countercyclical Capital Buffer
-The countercyclical buffer ranges from 0% to 2.5% of risk-weighted assets and is activated by national authorities based on credit conditions.
-
-3. Leverage Ratio
-3.1 Minimum Requirement
-Basel III introduces a minimum leverage ratio of 3% of total exposures. The leverage ratio is calculated as Tier 1 capital divided by the bank's total exposures.
-
-3.2 Purpose
-The leverage ratio serves as a non-risk-based backstop to the risk-based capital requirements and helps contain the build-up of excessive leverage in the banking system.
-
-4. Liquidity Standards
-4.1 Liquidity Coverage Ratio (LCR)
-The LCR requires banks to hold sufficient high-quality liquid assets to cover net cash outflows over a 30-day stress period. The minimum requirement is 100%.
-
-4.2 Net Stable Funding Ratio (NSFR)
-The NSFR requires banks to maintain a stable funding profile relative to the composition of their assets and off-balance sheet activities. The minimum requirement is 100%.
-
-5. Risk Coverage
-5.1 Enhanced Risk Capture
-Basel III strengthens the capital requirements for counterparty credit risk arising from derivatives, repos, and securities financing transactions.
-
-5.2 Credit Valuation Adjustment (CVA)
-Banks must hold capital against potential mark-to-market losses on derivatives due to the deterioration in the creditworthiness of counterparties.
-
-6. Systemically Important Banks
-6.1 Global Systemically Important Banks (G-SIBs)
-G-SIBs are required to hold additional capital buffers ranging from 1% to 3.5% of risk-weighted assets, depending on their systemic importance.
-
-6.2 Domestic Systemically Important Banks (D-SIBs)
-National authorities may require D-SIBs to hold additional capital buffers based on their domestic systemic importance.
-
-7. Output Floor
-7.1 Standardized Approach Floor
-Basel III includes an output floor that limits the extent to which banks can use internal models to reduce capital requirements. The floor is set at 72.5% of the standardized approach.
-
-8. Implementation Timeline
-8.1 Phase-in Arrangements
-The Basel III standards are being implemented gradually:
-- Capital requirements: 2013-2019
-- Leverage ratio: 2018
-- LCR: 2015
-- NSFR: 2018
-
-8.2 Monitoring Period
-The leverage ratio and liquidity standards were subject to observation periods before becoming minimum requirements.
-
-9. Regulatory Consistency
-9.1 Implementation Consistency
-The Basel Committee monitors the consistency of implementation across jurisdictions to ensure a level playing field and prevent regulatory arbitrage.
-
-9.2 Jurisdictional Discretion
-National authorities have limited discretion in implementing Basel III standards, particularly regarding the countercyclical buffer and systemic risk buffers.
-
-10. Impact Assessment
-10.1 Economic Impact
-Studies indicate that Basel III implementation will lead to a more resilient banking system with a modest impact on long-term economic growth.
-
-10.2 Transition Costs
-Banks may face transition costs in adjusting their business models and capital structures to meet the new requirements.
-
-11. Future Revisions
-11.1 Ongoing Review
-The Basel Committee continues to review and refine the regulatory framework based on experience and emerging risks.
-
-11.2 Basel IV
-Further revisions to the Basel framework, sometimes referred to as Basel IV, are under consideration to address remaining weaknesses.
-
-12. Conclusion
-Basel III represents a comprehensive reform of the global regulatory framework for banks. By strengthening capital, liquidity, and leverage standards, the framework aims to promote a more resilient banking sector that supports sustainable economic growth.
-
-Basel Committee on Banking Supervision
-Bank for International Settlements
-CH-4002 Basel, Switzerland
-
-Publication Date: December 2010 (revised June 2011, January 2013, January 2017)
-Effective Date: Various, with full implementation by January 1, 2023
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 2682 >>
+stream
+BT
+/F1 10 Tf
+14 TL
+72 720 Td
+(Basel III: International Regulatory Framework for Banks) Tj
+T*
+() Tj
+T*
+(Basel Committee on Banking Supervision) Tj
+T*
+(Basel III: A global regulatory framework for more resilient banks and banking systems) Tj
+T*
+() Tj
+T*
+(1. Executive Summary) Tj
+T*
+(Basel III is an international regulatory framework developed by the Basel Committee on) Tj
+T*
+(Banking Supervision in response to the financial crisis of 2007-2009. The framework) Tj
+T*
+(strengthens bank capital requirements, introduces new regulatory requirements on bank) Tj
+T*
+(liquidity and leverage, and aims to improve the banking sector's ability to absorb) Tj
+T*
+(shocks arising from financial and economic stress.) Tj
+T*
+() Tj
+T*
+(2. Capital Requirements) Tj
+T*
+(2.1 Enhanced Capital Quality) Tj
+T*
+(Basel III emphasizes the quality of capital, with a greater focus on Common Equity Tier) Tj
+T*
+(1 \(CET1\) capital. CET1 capital must be loss-absorbing on a going-concern basis.) Tj
+T*
+() Tj
+T*
+(2.2 Minimum Capital Ratios) Tj
+T*
+(- Common Equity Tier 1 \(CET1\): 4.5% of risk-weighted assets) Tj
+T*
+(- Tier 1 Capital: 6.0% of risk-weighted assets) Tj
+T*
+(- Total Capital: 8.0% of risk-weighted assets) Tj
+T*
+() Tj
+T*
+(2.3 Capital Conservation Buffer) Tj
+T*
+(Banks must maintain a capital conservation buffer of 2.5% of risk-weighted assets,) Tj
+T*
+(comprising CET1 capital. The buffer is designed to ensure banks build up capital buffers) Tj
+T*
+(during normal times that can be drawn down in periods of stress.) Tj
+T*
+() Tj
+T*
+(2.4 Countercyclical Capital Buffer) Tj
+T*
+(The countercyclical buffer ranges from 0% to 2.5% of risk-weighted assets and is) Tj
+T*
+(activated by national authorities based on credit conditions.) Tj
+T*
+() Tj
+T*
+(3. Leverage Ratio) Tj
+T*
+(3.1 Minimum Requirement) Tj
+T*
+(Basel III introduces a minimum leverage ratio of 3% of total exposures. The leverage) Tj
+T*
+(ratio is calculated as Tier 1 capital divided by the bank's total exposures.) Tj
+T*
+() Tj
+T*
+(3.2 Purpose) Tj
+T*
+(The leverage ratio serves as a non-risk-based backstop to the risk-based capital) Tj
+T*
+(requirements and helps contain the build-up of excessive leverage in the banking system.) Tj
+T*
+() Tj
+T*
+(4. Liquidity Standards) Tj
+T*
+(4.1 Liquidity Coverage Ratio \(LCR\)) Tj
+T*
+(The LCR requires banks to hold sufficient high-quality liquid assets to cover net cash) Tj
+T*
+(outflows over a 30-day stress period. The minimum requirement is 100%.) Tj
+T*
+() Tj
+T*
+(4.2 Net Stable Funding Ratio \(NSFR\)) Tj
+T*
+(The NSFR requires banks to maintain a stable funding profile relative to the composition) Tj
+T*
+(of their assets and off-balance sheet activities. The minimum requirement is 100%.) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 2204 >>
+stream
+BT
+/F1 10 Tf
+14 TL
+72 720 Td
+() Tj
+T*
+(5. Risk Coverage) Tj
+T*
+(5.1 Enhanced Risk Capture) Tj
+T*
+(Basel III strengthens the capital requirements for counterparty credit risk arising from) Tj
+T*
+(derivatives, repos, and securities financing transactions.) Tj
+T*
+() Tj
+T*
+(5.2 Credit Valuation Adjustment \(CVA\)) Tj
+T*
+(Banks must hold capital against potential mark-to-market losses on derivatives due to) Tj
+T*
+(the deterioration in the creditworthiness of counterparties.) Tj
+T*
+() Tj
+T*
+(6. Systemically Important Banks) Tj
+T*
+(6.1 Global Systemically Important Banks \(G-SIBs\)) Tj
+T*
+(G-SIBs are required to hold additional capital buffers ranging from 1% to 3.5% of) Tj
+T*
+(risk-weighted assets, depending on their systemic importance.) Tj
+T*
+() Tj
+T*
+(6.2 Domestic Systemically Important Banks \(D-SIBs\)) Tj
+T*
+(National authorities may require D-SIBs to hold additional capital buffers based on) Tj
+T*
+(their domestic systemic importance.) Tj
+T*
+() Tj
+T*
+(7. Output Floor) Tj
+T*
+(7.1 Standardized Approach Floor) Tj
+T*
+(Basel III includes an output floor that limits the extent to which banks can use) Tj
+T*
+(internal models to reduce capital requirements. The floor is set at 72.5% of the) Tj
+T*
+(standardized approach.) Tj
+T*
+() Tj
+T*
+(8. Implementation Timeline) Tj
+T*
+(8.1 Phase-in Arrangements) Tj
+T*
+(The Basel III standards are being implemented gradually:) Tj
+T*
+(- Capital requirements: 2013-2019) Tj
+T*
+(- Leverage ratio: 2018) Tj
+T*
+(- LCR: 2015) Tj
+T*
+(- NSFR: 2018) Tj
+T*
+() Tj
+T*
+(8.2 Monitoring Period) Tj
+T*
+(The leverage ratio and liquidity standards were subject to observation periods before) Tj
+T*
+(becoming minimum requirements.) Tj
+T*
+() Tj
+T*
+(9. Regulatory Consistency) Tj
+T*
+(9.1 Implementation Consistency) Tj
+T*
+(The Basel Committee monitors the consistency of implementation across jurisdictions to) Tj
+T*
+(ensure a level playing field and prevent regulatory arbitrage.) Tj
+T*
+() Tj
+T*
+(9.2 Jurisdictional Discretion) Tj
+T*
+(National authorities have limited discretion in implementing Basel III standards,) Tj
+T*
+(particularly regarding the countercyclical buffer and systemic risk buffers.) Tj
+T*
+() Tj
+T*
+(10. Impact Assessment) Tj
+T*
+(10.1 Economic Impact) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 1373 >>
+stream
+BT
+/F1 10 Tf
+14 TL
+72 720 Td
+(Studies indicate that Basel III implementation will lead to a more resilient banking) Tj
+T*
+(system with a modest impact on long-term economic growth.) Tj
+T*
+() Tj
+T*
+(10.2 Transition Costs) Tj
+T*
+(Banks may face transition costs in adjusting their business models and capital) Tj
+T*
+(structures to meet the new requirements.) Tj
+T*
+() Tj
+T*
+(11. Future Revisions) Tj
+T*
+(11.1 Ongoing Review) Tj
+T*
+(The Basel Committee continues to review and refine the regulatory framework based on) Tj
+T*
+(experience and emerging risks.) Tj
+T*
+() Tj
+T*
+(11.2 Basel IV) Tj
+T*
+(Further revisions to the Basel framework, sometimes referred to as Basel IV, are under) Tj
+T*
+(consideration to address remaining weaknesses.) Tj
+T*
+() Tj
+T*
+(12. Conclusion) Tj
+T*
+(Basel III represents a comprehensive reform of the global regulatory framework for) Tj
+T*
+(banks. By strengthening capital, liquidity, and leverage standards, the framework aims) Tj
+T*
+(to promote a more resilient banking sector that supports sustainable economic growth.) Tj
+T*
+() Tj
+T*
+(Basel Committee on Banking Supervision) Tj
+T*
+(Bank for International Settlements) Tj
+T*
+(CH-4002 Basel, Switzerland) Tj
+T*
+() Tj
+T*
+(Publication Date: December 2010 \(revised June 2011, January 2013, January 2017\)) Tj
+T*
+(Effective Date: Various, with full implementation by January 1, 2023) Tj
+T*
+() Tj
+ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000133 00000 n 
+0000000230 00000 n 
+0000000356 00000 n 
+0000003089 00000 n 
+0000003215 00000 n 
+0000005470 00000 n 
+0000005596 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+7020
+%%EOF
