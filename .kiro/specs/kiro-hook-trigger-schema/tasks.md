@@ -60,7 +60,7 @@ This plan fixes the unsupported task-completion trigger in `.kiro/hooks/auto-com
     - _Preservation: For every non-bug-condition input, the fixed configuration preserves the original unrelated behavior._
     - _Requirements: 3.1, 3.2, 3.3_
 
-- [~] 4. Checkpoint - Confirm the complete focused result and scope
+- [x] 4. Checkpoint - Confirm the complete focused result and scope
   - Run exactly: `PYTHONPATH=. pytest tests/test_kiro_hooks.py`
   - Confirm the command reports all 150 tests passing.
   - Review the diff and workspace status to confirm the only intended change is the `PostTaskExecution` to `PostTaskExec` trigger correction in `.kiro/hooks/auto-commit.json`; no source, test, shell hook, or unrelated hook files changed.
