@@ -29,7 +29,7 @@ This plan fixes the unsupported task-completion trigger in `.kiro/hooks/auto-com
   - _Preservation: For inputs where `isBugCondition(input)` is false, preserve all unrelated triggers, v1 schema fields, matchers, action commands, timeouts, hook scripts, and focused-test wiring._
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [ ] 3. Apply the minimal hook trigger correction
+- [x] 3. Apply the minimal hook trigger correction
 
   - [x] 3.1 Update only the affected trigger value
     - Edit `.kiro/hooks/auto-commit.json` for the `Commit Changes After Task Completion` hook.
@@ -50,7 +50,7 @@ This plan fixes the unsupported task-completion trigger in `.kiro/hooks/auto-com
     - _Expected_Behavior: `expectedBehavior(result)` holds for every input satisfying the bug condition._
     - _Requirements: 2.1, 2.2, 2.3_
 
-  - [~] 3.3 Verify preservation behavior after the correction
+  - [x] 3.3 Verify preservation behavior after the correction
     - **Property 2: Preservation** - Existing unrelated hook behavior remains valid
     - **IMPORTANT**: Use the same focused test run from task 3.2 and review the resulting diff; do not write new tests.
     - Confirm `init-env.json`, `lint-code.json`, `run-tests.json`, and `validate-ontology.json` remain unchanged.
