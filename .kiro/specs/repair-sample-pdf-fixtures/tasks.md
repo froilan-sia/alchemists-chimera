@@ -50,7 +50,7 @@ This plan repairs the three malformed regulatory PDF fixtures through canonical 
     - _Preservation: Preserve the documented filenames and the complete substantive regulatory payloads rather than substituting abbreviated or externally sourced documents.
     - _Requirements: 2.1, 2.3, 2.4, 2.6, 3.4, 3.5_
 
-  - [~] 3.3 Add and run focused fix-validation and deterministic-generation tests
+  - [x] 3.3 Add and run focused fix-validation and deterministic-generation tests
     - Add `tests/unit/test_sample_pdf_fixtures.py` with reusable fixture metadata, source normalization, PDF validation helpers, and document-specific marker assertions.
     - Validate each checked-in replacement has a `%PDF-1.4` header, terminal `%%EOF`, strict `pypdf.PdfReader` opening without exception, at least one page, non-empty extraction, and normalized extracted text equal to the corresponding canonical source text in the same order.
     - Run `PDFParser.parse_pdf()` for all three replacements with default settings and assert non-empty chunks, one-based pages, positive page text, correct `document_name`, matching document metadata, chunk identifiers, offsets, and sufficient page metadata.
