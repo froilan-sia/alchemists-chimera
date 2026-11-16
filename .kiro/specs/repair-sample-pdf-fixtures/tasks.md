@@ -17,7 +17,7 @@ This plan repairs the three malformed regulatory PDF fixtures through canonical 
   - Document the counterexamples in the test output or task notes, then retain the same test for post-fix verification.
   - _Requirements: 1.1, 1.2, 1.3, 1.5_
 
-- [~] 2. Write preservation and regression property tests before implementing the fix
+- [x] 2. Write preservation and regression property tests before implementing the fix
   - **Property 2: Preservation** - Existing names, parser contracts, README content, and unrelated PDFs remain stable
   - **IMPORTANT**: Follow observation-first methodology. Run these checks on the unfixed checkout and record the behavior that must remain unchanged.
   - Verify `data/input/SAMPLE_DATA_README.md` contains the exact three documented filenames, their existing subjects/key concepts, named entities, sample-query context, and ingestion instructions.
