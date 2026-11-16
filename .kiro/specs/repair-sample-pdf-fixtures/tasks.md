@@ -62,7 +62,7 @@ This plan repairs the three malformed regulatory PDF fixtures through canonical 
     - _Preservation: The README references, parser contract, unrelated fixtures, and offline behavior remain unchanged.
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.5, 3.6_
 
-  - [~] 3.4 Verify the bug-condition exploration test now passes
+  - [x] 3.4 Verify the bug-condition exploration test now passes
     - **Property 1: Expected Behavior** - Named fixtures are valid and extractable PDFs
     - Re-run the exact exploration test from task 1; do not write a replacement test.
     - Confirm all three named paths now satisfy the expected behavior: valid signature/trailer, strict reader opening, nonzero pages, non-empty complete normalized source extraction, required regulatory markers, and at least one `PDFChunk` with one-based page metadata.
