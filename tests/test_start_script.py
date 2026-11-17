@@ -216,3 +216,56 @@ def test_startup_fails_when_ollama_model_pull_fails(tmp_path: Path) -> None:
     assert not streamlit_marker.exists()
     startup_log = Path(environment["STARTUP_LOG_FILE"]).read_text(encoding="utf-8")
     assert "Failed to pull Ollama model" in startup_log
+
+
+def test_startup_sources_existing_local_virtual_environment(tmp_path: Path) -> None:
+    """An existing venv marker exposes that the unfixed launcher skips activation."""
+    environment, bin_dir = _base_environment(tmp_path)
+    app_dir = Path(environment["APP_DIR"])
+    activation = app_dir / "venv" / "bin" / "activate"
+    activation.parent.mkdir(parents=True)
+    activation.write_text(
+        "export LOCAL_VENV_MARKER=activated-by-local-venv\n",
+        encoding="utf-8",
+    )
+
+    uvicorn_marker = tmp_path / "uvicorn.txt"
+    streamlit_marker = tmp_path / "streamlit.txt"
+    environment.update(
+        {
+            "UVICORN_MARKER": str(uvicorn_marker),
+            "STREAMLIT_MARKER": str(streamlit_marker),
+        }
+    )
+    _ollama_command(bin_dir, cached=True)
+    _curl_command(bin_dir)
+    _write_executable(
+        bin_dir / "uvicorn",
+        """#!/usr/bin/env bash
+set -eu
+printf '%s\\n' "${LOCAL_VENV_MARKER:-missing}" > "${UVICORN_MARKER}"
+exec python3 -c 'import time; time.sleep(60)'
+""",
+    )
+    _write_executable(
+        bin_dir / "streamlit",
+        """#!/usr/bin/env bash
+set -eu
+printf '%s\\n' "${LOCAL_VENV_MARKER:-missing}" > "${STREAMLIT_MARKER}"
+exec python3 -c 'import time; time.sleep(60)'
+""",
+    )
+
+    process = _run_until_marker(environment, streamlit_marker)
+    _stop_process(process)
+
+    observed_uvicorn = uvicorn_marker.read_text(encoding="utf-8").strip()
+    observed_streamlit = streamlit_marker.read_text(encoding="utf-8").strip()
+    assert observed_uvicorn == "activated-by-local-venv", (
+        "Counterexample on unfixed code: uvicorn observed local venv marker "
+        f"{observed_uvicorn!r} even though {activation} existed."
+    )
+    assert observed_streamlit == "activated-by-local-venv", (
+        "Counterexample on unfixed code: streamlit observed local venv marker "
+        f"{observed_streamlit!r} even though {activation} existed."
+    )

@@ -135,3 +135,43 @@ def test_pipeline_checkpoint_recovery_and_component_health(tmp_path: Path):
     assert set(health["components"]) == {
         "pdf_parser", "entity_extractor", "triple_extractor", "shacl_validator", "staging_manager", "vector_store"
     }
+
+
+def test_default_ollama_timeout_allows_cold_generation_without_retry(monkeypatch):
+    """A 42-second valid generation exposes the unfixed 30-second timeout and retries."""
+    extractor = TripleExtractor()
+    calls = []
+    completion_seconds = 42.0
+
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"response": "[]"}
+
+    def post(*args, **kwargs):
+        timeout = kwargs["timeout"]
+        calls.append(timeout)
+        if completion_seconds > timeout:
+            raise requests.exceptions.Timeout(
+                f"simulated read timeout={timeout}; completion={completion_seconds}"
+            )
+        return Response()
+
+    monkeypatch.setattr(extractor.session, "post", post)
+    monkeypatch.setattr("src.ingestor.triple_extractor.time.sleep", lambda _: None)
+
+    failure = None
+    result = None
+    try:
+        result = extractor._call_ollama_with_retry("cold-generation")
+    except Exception as error:  # Capture the unfixed retry counterexample for the assertion.
+        failure = error
+
+    assert failure is None, (
+        "Counterexample on unfixed code: a valid 42.0-second generation received "
+        f"timeout values {calls!r}, retried {len(calls)} times, and failed with {failure!r}."
+    )
+    assert result == {"response": "[]"}
+    assert calls == [120.0]
