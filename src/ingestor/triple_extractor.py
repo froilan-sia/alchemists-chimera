@@ -20,6 +20,8 @@ Hugging Face Spaces free-tier constraints.
 
 import json
 import logging
+import math
+import os
 import time
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple, Set, Union
@@ -39,6 +41,37 @@ from .pdf_parser import PDFChunk
 from .entity_extractor import ExtractedEntity
 
 logger = logging.getLogger(__name__)
+
+
+DEFAULT_OLLAMA_TIMEOUT = 120.0
+MIN_OLLAMA_TIMEOUT = 5.0
+MAX_OLLAMA_TIMEOUT = 120.0
+
+
+def _resolve_ollama_timeout() -> float:
+    """Resolve the default Ollama timeout from the environment."""
+    raw_timeout = os.getenv("OLLAMA_TIMEOUT")
+    if raw_timeout is None or not raw_timeout.strip():
+        return DEFAULT_OLLAMA_TIMEOUT
+
+    try:
+        timeout = float(raw_timeout.strip())
+    except (TypeError, ValueError):
+        logger.warning(
+            "Ignoring invalid OLLAMA_TIMEOUT value %r; using %.1f seconds.",
+            raw_timeout,
+            DEFAULT_OLLAMA_TIMEOUT,
+        )
+        return DEFAULT_OLLAMA_TIMEOUT
+
+    if not math.isfinite(timeout) or not MIN_OLLAMA_TIMEOUT <= timeout <= MAX_OLLAMA_TIMEOUT:
+        logger.warning(
+            "Ignoring out-of-range OLLAMA_TIMEOUT value %r; using %.1f seconds.",
+            raw_timeout,
+            DEFAULT_OLLAMA_TIMEOUT,
+        )
+        return DEFAULT_OLLAMA_TIMEOUT
+    return timeout
 
 
 class TripleExtractorConfig(BaseModel):
@@ -77,9 +110,9 @@ class TripleExtractorConfig(BaseModel):
         description="Base delay for exponential backoff (seconds)"
     )
     timeout_seconds: float = Field(
-        default=30.0, 
-        ge=5.0, 
-        le=120.0, 
+        default_factory=_resolve_ollama_timeout,
+        ge=MIN_OLLAMA_TIMEOUT,
+        le=MAX_OLLAMA_TIMEOUT,
         description="Timeout for API calls (seconds)"
     )
     max_triples_per_chunk: int = Field(

@@ -9,7 +9,7 @@ import asyncio
 import logging
 import os
 import time
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Dict, Any
 from uuid import uuid4
@@ -105,16 +105,25 @@ async def lifespan(application: FastAPI):
     logger.info("Starting Alchemist's Chimera v%s", __version__)
     from ..router import HybridRouter
 
+    baseline_task = None
     retriever = HybridRouter()
     if os.getenv("BASELINE_INGEST_ON_STARTUP", "true").lower() not in {"0", "false", "no"}:
-        try:
-            from ..ingestor.baseline_loader import bootstrap_baseline_corpus
+        from ..ingestor.baseline_loader import bootstrap_baseline_corpus
 
-            result = await asyncio.to_thread(bootstrap_baseline_corpus)
-            logger.info("Baseline corpus bootstrap completed: %s", result)
-        except Exception as error:
-            # A baseline failure must not take down the query/API surface.
-            logger.warning("Baseline corpus bootstrap skipped: %s", error, exc_info=True)
+        async def run_baseline_bootstrap() -> None:
+            """Run baseline loading without delaying API readiness."""
+            try:
+                result = await asyncio.to_thread(bootstrap_baseline_corpus)
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:
+                # A baseline failure must not take down the query/API surface.
+                logger.warning("Baseline corpus bootstrap skipped: %s", error, exc_info=True)
+            else:
+                logger.info("Baseline corpus bootstrap completed: %s", result)
+
+        baseline_task = asyncio.create_task(run_baseline_bootstrap())
+
     job_store = IngestionJobStore(Path("data/tmp/ingestion_jobs"))
     upload_store = UploadedPdfStore(Path("data/uploads/jobs"))
 
@@ -129,9 +138,16 @@ async def lifespan(application: FastAPI):
         limits=RunnerLimits(),
     )
     await job_runner.start()
+    # Let the managed task begin without waiting for baseline completion.
+    await asyncio.sleep(0)
     try:
         yield
     finally:
+        if baseline_task is not None:
+            if not baseline_task.done():
+                baseline_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await baseline_task
         await job_runner.stop()
         job_runner = None
         upload_store = None

@@ -35,6 +35,15 @@ log() {
     printf '%s\n' "$message" >>"$STARTUP_LOG_FILE" 2>/dev/null || true
 }
 
+activate_local_virtualenv() {
+    local activation_file="${APP_DIR}/venv/bin/activate"
+    if [[ -f "$activation_file" ]]; then
+        # shellcheck source=/dev/null
+        source "$activation_file"
+        log "Activated local virtual environment from ${activation_file}."
+    fi
+}
+
 cleanup() {
     local exit_status=$?
     trap - EXIT INT TERM
@@ -207,6 +216,7 @@ start_streamlit() {
 
 main() {
     prepare_runtime_directories
+    activate_local_virtualenv
     require_commands
     start_ollama
     start_api

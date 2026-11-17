@@ -47,7 +47,7 @@ Test changes are limited to the focused existing test modules and a new focused 
   - Tests belong in `tests/unit/test_task18_resilience.py`, `tests/unit/test_ingestor.py`, `tests/unit/test_ollama_timeout_startup.py` when present, and `tests/test_start_script.py` as appropriate.
   - Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7
 
-- [ ] 3. Implement the production fixes without unrelated refactoring
+- [x] 3. Implement the production fixes without unrelated refactoring
   - Reuse the bug-condition and preservation tests from tasks 1 and 2. Do not replace them with weaker tests.
   - **3.1 Update Ollama timeout resolution in `src/ingestor/triple_extractor.py`**
     - Change the default `TripleExtractorConfig.timeout_seconds` from `30.0` to `120.0`.
