@@ -62,10 +62,11 @@ RUN mkdir -p \
 
 USER appuser
 
-# Streamlit exposes this lightweight readiness endpoint without requiring an
-# additional API server.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD curl --fail --silent http://localhost:7860/_stcore/health || exit 1
+# Streamlit is the public Spaces port; FastAPI remains an internal service
+# used by Streamlit for ingestion, queries, and document provenance.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
+    CMD curl --fail --silent http://localhost:8000/health >/dev/null \
+    && curl --fail --silent http://localhost:7860/_stcore/health >/dev/null
 
 EXPOSE 7860
 

@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 # Hugging Face Spaces runs the container as UID 1000. Keep all runtime state
 # under /app (or APP_DIR) so Ollama, Hugging Face, and ChromaDB are writable.
-APP_DIR="${APP_DIR:-/app}"
+APP_DIR="${APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 OLLAMA_MODELS="${OLLAMA_MODELS:-${APP_DIR}/.ollama/models}"
 HF_HOME="${HF_HOME:-${APP_DIR}/.cache}"
 DATA_DIR="${DATA_DIR:-${APP_DIR}/data}"
@@ -14,12 +14,18 @@ OLLAMA_STARTUP_TIMEOUT="${OLLAMA_STARTUP_TIMEOUT:-120}"
 OLLAMA_POLL_INTERVAL="${OLLAMA_POLL_INTERVAL:-2}"
 STREAMLIT_PORT="${STREAMLIT_PORT:-7860}"
 STREAMLIT_ADDRESS="${STREAMLIT_ADDRESS:-0.0.0.0}"
+API_PORT="${API_PORT:-8000}"
+API_ADDRESS="${API_ADDRESS:-127.0.0.1}"
+API_STARTUP_TIMEOUT="${API_STARTUP_TIMEOUT:-120}"
+API_POLL_INTERVAL="${API_POLL_INTERVAL:-2}"
 STARTUP_LOG_FILE="${STARTUP_LOG_FILE:-${APP_DIR}/startup.log}"
 OLLAMA_LOG_FILE="${OLLAMA_LOG_FILE:-${APP_DIR}/ollama.log}"
+API_LOG_FILE="${API_LOG_FILE:-${APP_DIR}/api.log}"
 
 export OLLAMA_MODELS HF_HOME OLLAMA_HOST
 
 OLLAMA_PID=""
+API_PID=""
 STREAMLIT_PID=""
 
 log() {
@@ -37,6 +43,10 @@ cleanup() {
         log "Stopping Streamlit process (PID ${STREAMLIT_PID})."
         kill "$STREAMLIT_PID" 2>/dev/null || true
     fi
+    if [[ -n "$API_PID" ]] && kill -0 "$API_PID" 2>/dev/null; then
+        log "Stopping FastAPI process (PID ${API_PID})."
+        kill "$API_PID" 2>/dev/null || true
+    fi
     if [[ -n "$OLLAMA_PID" ]] && kill -0 "$OLLAMA_PID" 2>/dev/null; then
         log "Stopping Ollama process (PID ${OLLAMA_PID})."
         kill "$OLLAMA_PID" 2>/dev/null || true
@@ -44,6 +54,9 @@ cleanup() {
 
     if [[ -n "$STREAMLIT_PID" ]]; then
         wait "$STREAMLIT_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$API_PID" ]]; then
+        wait "$API_PID" 2>/dev/null || true
     fi
     if [[ -n "$OLLAMA_PID" ]]; then
         wait "$OLLAMA_PID" 2>/dev/null || true
@@ -68,7 +81,7 @@ prepare_runtime_directories() {
     fi
     chmod -R a+rwX "$OLLAMA_MODELS" "$HF_HOME" "$DATA_DIR"
 
-    touch "$STARTUP_LOG_FILE" "$OLLAMA_LOG_FILE"
+    touch "$STARTUP_LOG_FILE" "$OLLAMA_LOG_FILE" "$API_LOG_FILE"
 }
 
 require_commands() {
@@ -129,6 +142,41 @@ start_ollama() {
     fi
 }
 
+wait_for_api() {
+    local deadline=$((SECONDS + API_STARTUP_TIMEOUT))
+    local health_url="http://${API_ADDRESS}:${API_PORT}/health"
+    log "Waiting for FastAPI readiness at ${health_url}."
+
+    while (( SECONDS < deadline )); do
+        if ! kill -0 "$API_PID" 2>/dev/null; then
+            log "ERROR: FastAPI exited before becoming ready."
+            return 1
+        fi
+        if curl --fail --silent --show-error --max-time 5 \
+            "$health_url" >/dev/null 2>&1; then
+            log "FastAPI is ready."
+            return 0
+        fi
+        sleep "$API_POLL_INTERVAL"
+    done
+
+    log "ERROR: FastAPI did not become ready within ${API_STARTUP_TIMEOUT} seconds."
+    return 1
+}
+
+start_api() {
+    if ! command -v uvicorn >/dev/null 2>&1; then
+        log "WARNING: uvicorn is not available; continuing without the FastAPI backend."
+        return 0
+    fi
+    log "Starting FastAPI on ${API_ADDRESS}:${API_PORT}."
+    uvicorn src.api.main:app \
+        --host="$API_ADDRESS" \
+        --port="$API_PORT" >"$API_LOG_FILE" 2>&1 &
+    API_PID=$!
+    wait_for_api
+}
+
 start_streamlit() {
     log "Starting Streamlit on ${STREAMLIT_ADDRESS}:${STREAMLIT_PORT}."
     streamlit run "${APP_DIR}/app.py" \
@@ -139,6 +187,10 @@ start_streamlit() {
     # Keep the shell as PID 1, monitor both services, and terminate the other
     # service if either process exits unexpectedly.
     while kill -0 "$STREAMLIT_PID" 2>/dev/null; do
+        if [[ -n "$API_PID" ]] && ! kill -0 "$API_PID" 2>/dev/null; then
+            log "ERROR: FastAPI stopped while Streamlit was running."
+            return 1
+        fi
         if ! kill -0 "$OLLAMA_PID" 2>/dev/null; then
             log "ERROR: Ollama stopped while Streamlit was running."
             return 1
@@ -157,6 +209,7 @@ main() {
     prepare_runtime_directories
     require_commands
     start_ollama
+    start_api
     start_streamlit
 }
 

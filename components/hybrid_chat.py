@@ -151,8 +151,18 @@ def split_retrieval_results(
 
 
 def _document_endpoint_base() -> str:
-    """Return the FastAPI base URL used by the Streamlit provenance links."""
-    return os.getenv("DOCUMENT_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+    """Resolve the document API origin for local and Spaces deployments.
+
+    Local development reaches the backend on port 8000. Hugging Face exposes
+    only the public Streamlit origin, so the link must stay relative there and
+    resolve through the Space's public `/documents` route/proxy.
+    """
+    configured = os.getenv("DOCUMENT_API_BASE_URL")
+    if configured is not None:
+        return configured.rstrip("/")
+    if os.getenv("SPACE_HOST") or os.getenv("HF_SPACE_ID"):
+        return ""
+    return "http://127.0.0.1:8000"
 
 
 def provenance_link(result: RetrievalResult) -> Optional[str]:
