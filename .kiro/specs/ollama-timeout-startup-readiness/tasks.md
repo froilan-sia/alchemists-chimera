@@ -34,7 +34,7 @@ Test changes are limited to the focused existing test modules and a new focused 
   - Record the observed counterexamples in test names, assertions, or focused test documentation.
   - Requirements: 1.1, 1.2, 1.4, 1.5
 
-- [ ] 2. Record preservation behavior before implementing the fix
+- [x] 2. Record preservation behavior before implementing the fix
   - **Property 2: Preservation** - Existing behavior remains unchanged for inputs outside the bug condition.
   - Run these tests against the unfixed implementation and confirm they pass before task 3 changes production code.
   - Preserve explicit `TripleExtractorConfig.timeout_seconds`, including explicit values when `OLLAMA_TIMEOUT` is set. Preserve the existing Pydantic bounds and validation behavior for explicit values.

@@ -1,19 +1,23 @@
 """Error-injection, recovery, and health checks for Task 18."""
 
 from datetime import datetime
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 import requests
+from pydantic import ValidationError
 
-from src.ingestor.pdf_parser import PDFParser, PDFParserConfig
+from src.ingestor.pdf_parser import PDFChunk, PDFParser, PDFParserConfig
 from src.ingestor.pipeline import IngestionPipeline, PipelineStatus
 from src.ingestor.shacl_validator import SHACLValidator
 from src.ingestor.triple_extractor import (
     ExtractedTriple,
+    ExtractionStatus,
     TripleExtractor,
     TripleExtractorConfig,
+    TripleExtractorError,
 )
 from src.staging_manager import StagingManager
 from src.ingestor.pipeline import ValidationStatus
@@ -175,3 +179,141 @@ def test_default_ollama_timeout_allows_cold_generation_without_retry(monkeypatch
     )
     assert result == {"response": "[]"}
     assert calls == [120.0]
+
+
+def test_explicit_timeout_precedes_environment_and_keeps_validation(monkeypatch):
+    """Explicit timeout values remain authoritative and bounded."""
+    monkeypatch.setenv("OLLAMA_TIMEOUT", "75.5")
+
+    assert TripleExtractorConfig(timeout_seconds=15.0).timeout_seconds == 15.0
+
+    with pytest.raises(ValidationError):
+        TripleExtractorConfig(timeout_seconds=4.9)
+    with pytest.raises(ValidationError):
+        TripleExtractorConfig(timeout_seconds=120.1)
+
+
+def test_transient_failures_exhaust_retries_and_report_last_error(monkeypatch):
+    """Exhausted transient failures preserve attempts, backoff, and error state."""
+    extractor = TripleExtractor(
+        TripleExtractorConfig(max_retries=2, retry_delay_base=0.25)
+    )
+    calls = []
+    delays = []
+
+    def post(*args, **kwargs):
+        del args, kwargs
+        calls.append(1)
+        raise requests.exceptions.ConnectionError("transient outage")
+
+    monkeypatch.setattr(extractor.session, "post", post)
+    monkeypatch.setattr("src.ingestor.triple_extractor.time.sleep", delays.append)
+
+    with pytest.raises(TripleExtractorError, match="after 3 attempts"):
+        extractor._call_ollama_with_retry("prompt")
+
+    assert len(calls) == 3
+    assert delays == [0.25, 0.5]
+    assert extractor.last_error == "transient outage"
+
+
+def test_extraction_failure_keeps_fallback_triples_and_last_error(monkeypatch):
+    """A failed Ollama extraction still returns the existing fallback relationship."""
+    extractor = TripleExtractor(TripleExtractorConfig(max_retries=0))
+    error = TripleExtractorError("Ollama unavailable")
+    monkeypatch.setattr(
+        extractor,
+        "_call_ollama_with_retry",
+        lambda prompt: (_ for _ in ()).throw(error),
+    )
+    chunk = PDFChunk(
+        id="fallback-chunk",
+        text="Bank and HKMA are mentioned together.",
+        page_number=1,
+        chunk_index=0,
+        total_chunks=1,
+        metadata={},
+        start_char=0,
+        end_char=36,
+        document_id="doc",
+        document_name="source.pdf",
+    )
+    entities = [
+        SimpleNamespace(
+            text="Bank",
+            normalized_text="bank",
+            entity_type="ORG",
+        ),
+        SimpleNamespace(
+            text="HKMA",
+            normalized_text="hkma",
+            entity_type="ORG",
+        ),
+    ]
+
+    triples, status = extractor.extract_triples_from_chunk(chunk, entities)
+
+    assert status == ExtractionStatus.FAILED
+    assert len(triples) == 1
+    assert triples[0].predicate == extractor.config.fallback_predicate
+    assert triples[0].metadata["fallback_type"] == "entity_relation"
+    assert extractor.last_error == str(error)
+    assert len(extractor.pending_extractions) == 1
+
+
+def test_extraction_preserves_evidence_confidence_canonicalization_and_limit(monkeypatch):
+    """Successful extraction retains validation, canonicalization, filtering, and limits."""
+    source = "The bank must maintain capital requirements."
+    response = {
+        "response": json.dumps(
+            [
+                {
+                    "subject": "Bank",
+                    "predicate": "hasRequirement",
+                    "object": "Capital",
+                    "evidence": source,
+                    "confidence": 0.9,
+                },
+                {
+                    "subject": "Bank",
+                    "predicate": "hasRequirement",
+                    "object": "Liquidity",
+                    "evidence": source,
+                    "confidence": 0.8,
+                },
+                {
+                    "subject": "Bank",
+                    "predicate": "hasRequirement",
+                    "object": "Reserve",
+                    "evidence": source,
+                    "confidence": 0.4,
+                },
+            ]
+        )
+    }
+    extractor = TripleExtractor(
+        TripleExtractorConfig(confidence_threshold=0.5, max_triples_per_chunk=1)
+    )
+    monkeypatch.setattr(extractor, "_call_ollama_with_retry", lambda prompt: response)
+    chunk = PDFChunk(
+        id="parse-chunk",
+        text=source,
+        page_number=1,
+        chunk_index=0,
+        total_chunks=1,
+        metadata={},
+        start_char=0,
+        end_char=len(source),
+        document_id="doc",
+        document_name="source.pdf",
+    )
+
+    triples, status = extractor.extract_triples_from_chunk(chunk)
+
+    assert status == ExtractionStatus.SUCCESS
+    assert len(triples) == 1
+    assert triples[0].confidence == 0.9
+    assert triples[0].subject == "finance:Bank"
+    assert triples[0].predicate == "chimera:hasRequirement"
+    assert triples[0].object == "chimera:Capital"
+    assert triples[0].evidence == source

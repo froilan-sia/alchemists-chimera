@@ -117,9 +117,9 @@ def test_triple_response_filters_ungrounded_evidence(triple_factory):
         triples[0].evidence.lower()
         in "the bank must maintain capital requirements.".lower()
     )
-    assert triples[0].subject.startswith("chimera:")
-    assert triples[0].predicate.startswith("chimera:")
-    assert triples[0].object.startswith("chimera:")
+    assert triples[0].subject == "finance:Bank"
+    assert triples[0].predicate == "chimera:hasRequirement"
+    assert triples[0].object == "chimera:Capital"
 
 
 def test_shacl_validator_quarantines_low_confidence_triples(triple_factory):
