@@ -1,7 +1,8 @@
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix approval: <http://alchemists-chimera.org/approval#> .
-@prefix chimera: <http://alchemists-chimera.org/> .
+@prefix chimera: <http://example.org/chimera#> .
+@prefix chimera1: <http://alchemists-chimera.org/> .
 @prefix dc1: <http://purl.org/dc/terms/> .
+@prefix finance: <http://example.org/finance#> .
 @prefix ns1: <http://alchemists-chimera.org/predicate/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -23,10 +24,204 @@ approval:approval_20261112_190251 a approval:Approval ;
     dc1:created "2026-11-12T19:02:51.897846"^^xsd:dateTime,
         "2026-11-12T19:02:51.923628"^^xsd:dateTime .
 
+approval:approval_20261117_184533 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple finance:CapitalConservation ;
+    dc1:created "2026-11-17T18:45:33.992478"^^xsd:dateTime .
+
+approval:approval_20261117_184628 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple finance:BaselCommittee ;
+    dc1:created "2026-11-17T18:46:28.281414"^^xsd:dateTime .
+
+approval:approval_20261117_184644 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple finance:BaselCommittee ;
+    dc1:created "2026-11-17T18:46:44.598313"^^xsd:dateTime .
+
+approval:approval_20261117_185823 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple finance:HKMA ;
+    dc1:created "2026-11-17T18:58:23.653866"^^xsd:dateTime .
+
+approval:approval_20261117_185846 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple finance:TotalCapitalRatio ;
+    dc1:created "2026-11-17T18:58:46.609571"^^xsd:dateTime .
+
+approval:approval_20261117_185929 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple finance:LCR,
+        finance:NSFR ;
+    dc1:created "2026-11-17T18:59:29.107985"^^xsd:dateTime,
+        "2026-11-17T18:59:29.136681"^^xsd:dateTime .
+
+approval:approval_20261117_190203 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple finance:Collateral ;
+    dc1:created "2026-11-17T19:02:03.008483"^^xsd:dateTime,
+        "2026-11-17T19:02:03.036433"^^xsd:dateTime,
+        "2026-11-17T19:02:03.063923"^^xsd:dateTime .
+
+approval:approval_20261117_190220 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple finance:Bank,
+        finance:Regulators ;
+    dc1:created "2026-11-17T19:02:20.672754"^^xsd:dateTime,
+        "2026-11-17T19:02:20.707215"^^xsd:dateTime,
+        "2026-11-17T19:02:20.735560"^^xsd:dateTime,
+        "2026-11-17T19:02:20.764978"^^xsd:dateTime .
+
+approval:approval_20261117_190303 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple finance:HKMA ;
+    dc1:created "2026-11-17T19:03:03.877525"^^xsd:dateTime,
+        "2026-11-17T19:03:03.907734"^^xsd:dateTime .
+
+approval:approval_20261117_190336 a approval:Approval ;
+    approval:approvedBy "auto_approval" ;
+    approval:approvedTriple chimera:chimera ;
+    dc1:created "2026-11-17T19:03:36.763990"^^xsd:dateTime,
+        "2026-11-17T19:03:36.799841"^^xsd:dateTime .
+
 ns1:predicate_chimera_requires rdfs:label "chimera:requires" .
 
+chimera:baseline-document-0db0c52b216725a0c965fcdbccf5a472f853046ccd3ccf61e4286b9db6b4d8f3 a chimera:BaselineDocument ;
+    chimera:sourceDocument "basel_iii_framework.pdf" ;
+    chimera:sourceSha256 "0db0c52b216725a0c965fcdbccf5a472f853046ccd3ccf61e4286b9db6b4d8f3" .
+
+chimera:baseline-document-49d668dd22a936a6f7adc729fe1ea6fb7eb8050df8b5c27a1bd578a42b780fa6 a chimera:BaselineDocument ;
+    chimera:sourceDocument "test_hkma_basel.pdf" ;
+    chimera:sourceSha256 "49d668dd22a936a6f7adc729fe1ea6fb7eb8050df8b5c27a1bd578a42b780fa6" .
+
+chimera:baseline-document-8301fa6f35a18c48dd87fef9fa592d06e7c60d248c16d05f394a19afa2d44b55 a chimera:BaselineDocument ;
+    chimera:sourceDocument "hkma_capital_requirements.pdf" ;
+    chimera:sourceSha256 "8301fa6f35a18c48dd87fef9fa592d06e7c60d248c16d05f394a19afa2d44b55" .
+
+chimera:baseline-document-f4801a893ff9e0c8fc5bca5447ccbd5d59a70972df9672f4db61c01452064ddb a chimera:BaselineDocument ;
+    chimera:sourceDocument "risk_weighted_assets.pdf" ;
+    chimera:sourceSha256 "f4801a893ff9e0c8fc5bca5447ccbd5d59a70972df9672f4db61c01452064ddb" .
+
+chimera:eligibleFor rdfs:label "chimera:eligibleFor" .
+
+chimera:geo_locatedIn rdfs:label "chimera:geo_locatedIn" .
+
+chimera:limitedDiscretion rdfs:label "chimera:limitedDiscretion" .
+
+chimera:purpose rdfs:label "chimera:purpose" .
+
+chimera:requiredBy rdfs:label "chimera:requiredBy" .
+
+chimera:requirementFor rdfs:label "chimera:requirementFor" .
+
+chimera:requirementOf rdfs:label "chimera:requirementOf" .
+
+chimera:requires rdfs:label "chimera:requires" .
+
+chimera:review rdfs:label "chimera:review" .
+
+chimera:use rdfs:label "chimera:use" .
+
+chimera:usedFor rdfs:label "chimera:usedFor" .
+
+finance:appliesTo rdfs:label "finance:appliesTo" .
+
+finance:CapitalConservation rdfs:label "finance:CapitalConservation" ;
+    chimera:confidence "0.95"^^xsd:float ;
+    chimera:evidence "Banks must maintain a capital conservation buffer of 2.5% of risk-weighted assets, comprising CET1 capital." ;
+    chimera:pageNumber 1 ;
+    chimera:requiredBy finance:Bank ;
+    chimera:sourceDocument "basel_iii_framework.pdf" ;
+    chimera:sourceSha256 "0db0c52b216725a0c965fcdbccf5a472f853046ccd3ccf61e4286b9db6b4d8f3" .
+
+finance:Collateral rdfs:label "finance:Collateral" ;
+    chimera:confidence "0.95"^^xsd:float ;
+    chimera:eligibleFor finance:Cash,
+        finance:Debt,
+        finance:Gold ;
+    chimera:evidence "7.1 Eligible collateral - cash",
+        "7.1 Eligible collateral - cash - gold",
+        "7.1 Eligible collateral - cash - gold - debt" ;
+    chimera:pageNumber 2 ;
+    chimera:sourceDocument "risk_weighted_assets.pdf" ;
+    chimera:sourceSha256 "f4801a893ff9e0c8fc5bca5447ccbd5d59a70972df9672f4db61c01452064ddb" .
+
+finance:LCR rdfs:label "finance:LCR" ;
+    chimera:confidence "0.95"^^xsd:float ;
+    chimera:evidence "Authorized institutions must maintain a Liquidity Coverage Ratio of at least 100%. The LCR ensures that banks have sufficient high-quality liquid assets to withstand a 30-day stress scenario." ;
+    chimera:pageNumber 2 ;
+    chimera:requirementOf chimera:6 ;
+    chimera:sourceDocument "hkma_capital_requirements.pdf" ;
+    chimera:sourceSha256 "8301fa6f35a18c48dd87fef9fa592d06e7c60d248c16d05f394a19afa2d44b55" .
+
+finance:NSFR rdfs:label "finance:NSFR" ;
+    chimera:confidence "0.95"^^xsd:float ;
+    chimera:evidence "Banks must maintain a Net Stable Funding Ratio of at least 100%. The NSFR promotes resilience over a longer time horizon by requiring stable funding relative to the liquidity profile of assets." ;
+    chimera:pageNumber 2 ;
+    chimera:requirementOf chimera:6 ;
+    chimera:sourceDocument "hkma_capital_requirements.pdf" ;
+    chimera:sourceSha256 "8301fa6f35a18c48dd87fef9fa592d06e7c60d248c16d05f394a19afa2d44b55" .
+
+finance:Regulators rdfs:label "finance:Regulators" ;
+    chimera:confidence "0.95"^^xsd:float ;
+    chimera:evidence "Regulators review RWA calculations and models as part of the supervisory review process (Pillar 2)" ;
+    chimera:pageNumber 3 ;
+    chimera:review finance:RWA_calculations,
+        finance:models ;
+    chimera:sourceDocument "risk_weighted_assets.pdf" ;
+    chimera:sourceSha256 "f4801a893ff9e0c8fc5bca5447ccbd5d59a70972df9672f4db61c01452064ddb" .
+
+finance:TotalCapitalRatio rdfs:label "finance:TotalCapitalRatio" ;
+    chimera:confidence "0.95"^^xsd:float ;
+    chimera:evidence "Banks must maintain a minimum total capital ratio of 8.0% of risk-weighted assets" ;
+    chimera:pageNumber 1 ;
+    chimera:requirementFor finance:Bank ;
+    chimera:sourceDocument "hkma_capital_requirements.pdf" ;
+    chimera:sourceSha256 "8301fa6f35a18c48dd87fef9fa592d06e7c60d248c16d05f394a19afa2d44b55" .
+
+finance:BaselCommittee rdfs:label "finance:BaselCommittee" ;
+    chimera:confidence "0.95"^^xsd:float ;
+    chimera:evidence "Basel Committee on Banking Supervision Bank for International Settlements CH-4002 Basel, Switzerland",
+        "National authorities have limited discretion in implementing Basel III standards, particularly regarding the countercyclical buffer and systemic risk buffers" ;
+    chimera:geo_locatedIn chimera:switzerland_gpe ;
+    chimera:limitedDiscretion chimera:national ;
+    chimera:pageNumber 2,
+        3 ;
+    chimera:sourceDocument "basel_iii_framework.pdf" ;
+    chimera:sourceSha256 "0db0c52b216725a0c965fcdbccf5a472f853046ccd3ccf61e4286b9db6b4d8f3" .
+
+finance:HKMA rdfs:label "finance:HKMA" ;
+    chimera:confidence "0.95"^^xsd:float ;
+    chimera:evidence "The Hong Kong Monetary Authority (HKMA) implements the Basel III regulatory framework for capital adequacy standards.",
+        "The Hong Kong Monetary Authority (HKMA) requires all authorized institutions to maintain adequate capital to support their risk profile and business activities." ;
+    chimera:pageNumber 1 ;
+    chimera:requires finance:Bank ;
+    chimera:sourceDocument "hkma_capital_requirements.pdf",
+        "test_hkma_basel.pdf" ;
+    chimera:sourceSha256 "49d668dd22a936a6f7adc729fe1ea6fb7eb8050df8b5c27a1bd578a42b780fa6",
+        "8301fa6f35a18c48dd87fef9fa592d06e7c60d248c16d05f394a19afa2d44b55" ;
+    finance:appliesTo chimera:additional_money,
+        chimera:money .
+
 <http://alchemists-chimera.org/subject/subject_chimera_bank> rdfs:label "chimera:Bank" ;
-    chimera:confidence "0.9"^^xsd:float ;
-    chimera:evidence "The bank must maintain capital requirements." ;
+    chimera1:confidence "0.9"^^xsd:float ;
+    chimera1:evidence "The bank must maintain capital requirements." ;
     ns1:predicate_chimera_requires <http://alchemists-chimera.org/object/object_chimera_capital> .
+
+chimera:chimera rdfs:label "chimera:chimera" ;
+    chimera:confidence "1.0"^^xsd:float ;
+    chimera:evidence "*Document generated for Alchemist's Chimera testing purposes*" ;
+    chimera:pageNumber 2 ;
+    chimera:purpose chimera:chimera ;
+    chimera:sourceDocument "test_hkma_basel.pdf" ;
+    chimera:sourceSha256 "49d668dd22a936a6f7adc729fe1ea6fb7eb8050df8b5c27a1bd578a42b780fa6" ;
+    chimera:usedFor chimera:chimera .
+
+finance:Bank rdfs:label "finance:Bank" ;
+    chimera:confidence "0.95"^^xsd:float ;
+    chimera:evidence "Banks using internal models must establish comprehensive validation frameworks, including back-testing and stress testing" ;
+    chimera:pageNumber 3 ;
+    chimera:sourceDocument "risk_weighted_assets.pdf" ;
+    chimera:sourceSha256 "f4801a893ff9e0c8fc5bca5447ccbd5d59a70972df9672f4db61c01452064ddb" ;
+    chimera:use finance:internal_models .
 

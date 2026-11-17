@@ -21,3 +21,6 @@ site/
 
 # Mac
 .DS_Store
+
+.ollama/
+*.log
