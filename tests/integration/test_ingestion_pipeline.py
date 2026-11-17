@@ -14,7 +14,7 @@ from src.ingestor.pdf_parser import PDFParser, PDFParserConfig
 from src.ingestor.pipeline import IngestionPipeline, PipelineStatus
 from src.ingestor.triple_extractor import ExtractedTriple, ExtractionStatus
 
-SAMPLE_PDF = Path(__file__).parents[2] / "data" / "input" / "sample.pdf"
+SAMPLE_PDF = Path(__file__).parents[2] / "data" / "input" / "basel_iii_framework.pdf"
 
 
 class RecordingVectorStore:

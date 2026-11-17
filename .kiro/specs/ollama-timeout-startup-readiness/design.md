@@ -6,6 +6,8 @@ This bugfix addresses three related startup and ingestion problems in the local 
 
 The fix is intentionally limited to the existing configuration and request path in `src/ingestor/triple_extractor.py`, the lifespan in `src/api/main.py`, and the startup entrypoint in `start.sh`. It will raise the default Ollama timeout to 120 seconds, allow a validated `OLLAMA_TIMEOUT` override without overriding an explicit `TripleExtractorConfig.timeout_seconds`, schedule baseline loading as a managed asyncio background task, and conditionally source `${APP_DIR}/venv/bin/activate`. Existing retry, parsing, health, launcher, and shutdown behavior outside these conditions remains unchanged.
 
+A newly approved follow-up repairs the 12 stale full-suite tests only. It replaces missing `data/input/sample.pdf` references with an existing watermarked fixture or a `tmp_path`-generated PDF as appropriate, updates the two hybrid-chat citation assertions to `/documents/{file_name}#page={page}`, and reruns `./venv/bin/pytest -q` until all 192 tests pass. The follow-up must not modify production logic or production files.
+
 ## Glossary
 
 - **Bug_Condition (C)**: An Ollama extraction request reaches the fixed 30-second timeout, or FastAPI startup awaits baseline loading before yielding, or the launcher starts without activating an existing repository virtual environment.

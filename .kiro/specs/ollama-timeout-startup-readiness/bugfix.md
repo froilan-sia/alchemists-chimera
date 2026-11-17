@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The local RAG service has two startup and inference bottlenecks visible in live logs. Ollama generation requests use a 30-second default timeout, so CPU-bound or cold `qwen2.5:3b` inference can fail with `Read timed out (read timeout=30.0)` and enter the existing retry sequence, producing four total request attempts for one extraction. The FastAPI lifespan also awaits the `data/input/` baseline corpus preload before yielding, which delays application readiness and prevents `GET /health` from becoming available immediately. The launcher does not automatically activate the repository virtual environment. This requirements-only bugfix is scoped to `src/ingestor/triple_extractor.py`, `src/api/main.py`, and `start.sh`; it shall preserve the existing retrieval, ingestion, health, retry, and launcher behavior outside these conditions. Acceptance is defined by the expected-behavior clauses below and by a clean `pytest -q` run after implementation.
+The local RAG service has two startup and inference bottlenecks visible in live logs. Ollama generation requests use a 30-second default timeout, so CPU-bound or cold `qwen2.5:3b` inference can fail with `Read timed out (read timeout=30.0)` and enter the existing retry sequence, producing four total request attempts for one extraction. The FastAPI lifespan also awaits the `data/input/` baseline corpus preload before yielding, which delays application readiness and prevents `GET /health` from becoming available immediately. The launcher does not automatically activate the repository virtual environment. This requirements-only bugfix is scoped to `src/ingestor/triple_extractor.py`, `src/api/main.py`, and `start.sh`; it shall preserve the existing retrieval, ingestion, health, retry, and launcher behavior outside these conditions. A newly approved test-maintenance follow-up also repairs the 12 stale full-suite tests that reference the missing `data/input/sample.pdf` fixture or the old hybrid-chat citation format. The follow-up is test-only: production logic must remain unchanged. Acceptance is defined by the expected-behavior clauses below and by a clean `./venv/bin/pytest -q` run with all 192 tests passing.
 
 ## Bug Analysis
 
@@ -17,6 +17,10 @@ The local RAG service has two startup and inference bottlenecks visible in live 
 1.4 WHEN FastAPI enters its lifespan with baseline ingestion enabled THEN the lifespan awaits the synchronous `data/input/` baseline corpus preload before yielding control, so server startup and `GET /health` remain blocked until that preload completes or fails.
 
 1.5 WHEN `start.sh` launches the services from a checkout containing `./venv/bin/activate` THEN the launcher does not automatically source that activation script before resolving and starting the Python-based services.
+
+1.6 WHEN the full test suite runs after the original bugfix changes THEN 12 stale tests reference the missing `data/input/sample.pdf` fixture and fail before exercising their intended behavior.
+
+1.7 WHEN the two hybrid-chat citation assertions run THEN they expect the obsolete `data/input/{file_name}#page={page}` provenance format instead of the current `/documents/{file_name}#page={page}` format.
 
 ### Expected Behavior (Correct)
 
@@ -36,6 +40,12 @@ The local RAG service has two startup and inference bottlenecks visible in live 
 
 2.8 WHEN the implementation is complete and the repository test suite is run with `pytest -q` THEN all existing tests SHALL pass.
 
+2.9 WHEN the 12 stale full-suite tests reference the missing `data/input/sample.pdf` path THEN the tests SHALL use an existing watermarked fixture or a `tmp_path`-generated PDF according to the behavior under test, without changing production logic.
+
+2.10 WHEN the two hybrid-chat citation assertions verify document provenance THEN the tests SHALL expect the current `/documents/{file_name}#page={page}` format.
+
+2.11 WHEN the complete repository suite is run with `./venv/bin/pytest -q` after the follow-up test repairs THEN all 192 tests SHALL pass without requiring a live Ollama model, network service, or full baseline ingestion dependency.
+
 ### Unchanged Behavior (Regression Prevention)
 
 3.1 WHEN a caller supplies an explicit `TripleExtractorConfig.timeout_seconds` value or an equivalent supported configuration value THEN the system SHALL CONTINUE TO honor that explicit value rather than replacing it with the default or environment value.
@@ -51,3 +61,7 @@ The local RAG service has two startup and inference bottlenecks visible in live 
 3.6 WHEN the preload encounters an exception or the application shuts down before it completes THEN the system SHALL CONTINUE to handle that condition through logging and lifespan cleanup without crashing the API process or leaving a background task running after shutdown.
 
 3.7 WHEN `start.sh` is run with or without `./venv/bin/activate` and the existing required commands and runtime directories are available THEN the launcher SHALL CONTINUE to preserve its current Ollama readiness checks, model pull behavior, FastAPI health polling, Streamlit startup, environment-variable overrides, signal handling, and cleanup behavior.
+
+3.8 WHEN the follow-up test repairs are made THEN production logic and production files SHALL CONTINUE to remain unchanged, and the original completed tasks SHALL remain preserved.
+
+3.9 WHEN the repaired tests exercise behavior unrelated to the missing fixture path or obsolete citation format THEN the tests SHALL CONTINUE to assert the existing behavior and SHALL not introduce a live Ollama, network, or full-ingestion dependency.

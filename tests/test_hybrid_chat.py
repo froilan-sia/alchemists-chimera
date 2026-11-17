@@ -51,7 +51,9 @@ def test_provenance_link_supports_document_page_and_chunk_metadata():
         },
     )
 
-    assert provenance_link(result) == "data/input/HKMA%20policy.pdf#page=12"
+    assert provenance_link(result) == (
+        "http://127.0.0.1:8000/documents/HKMA%20policy.pdf#page=12"
+    )
 
 
 def test_citation_records_use_fact_and_chunk_markers():
@@ -73,7 +75,9 @@ def test_citation_records_use_fact_and_chunk_markers():
 
     assert [record["marker"] for record in records] == ["[Fact 1]", "[Chunk 1]"]
     assert records[0]["provenance"] == "https://example.test/fact"
-    assert records[1]["provenance"] == "data/input/sample.pdf#page=2"
+    assert records[1]["provenance"] == (
+        "http://127.0.0.1:8000/documents/sample.pdf#page=2"
+    )
 
 
 def test_process_query_integrates_router_and_dynamic_alpha():

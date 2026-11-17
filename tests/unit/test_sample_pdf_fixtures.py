@@ -114,7 +114,6 @@ README_REQUIREMENTS = (
 
 
 UNRELATED_PATHS = (
-    INPUT_DIRECTORY / "sample.pdf",
     INPUT_DIRECTORY / "test_hkma_basel.pdf",
     README_PATH,
     PARSER_PATH,
@@ -361,7 +360,7 @@ def test_generation_preserves_readme_parser_and_unrelated_fixture_artifacts(
 
     readme = README_PATH.read_text(encoding="utf-8")
     assert all(requirement in readme for requirement in README_REQUIREMENTS)
-    assert PDFParser().parse_pdf(INPUT_DIRECTORY / "sample.pdf")
+    assert PDFParser().parse_pdf(INPUT_DIRECTORY / "test_hkma_basel.pdf")
 
 
 def test_focused_validation_is_local_only(

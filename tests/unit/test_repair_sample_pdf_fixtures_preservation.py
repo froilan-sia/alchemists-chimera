@@ -22,6 +22,8 @@ from hypothesis import given
 from hypothesis import strategies as st
 from pypdf import PdfReader
 
+from tools.generate_sample_pdf_fixtures import build_pdf
+
 from src.ingestor.pdf_parser import PDFParser, PDFParserError
 
 REPOSITORY_ROOT = Path(__file__).parents[2]
@@ -47,8 +49,8 @@ EXPECTED_GENERATOR_OUTPUTS = frozenset(
 PROTECTED_PATHS = frozenset(
     {
         INPUT_DIRECTORY / "SAMPLE_DATA_README.md",
-        INPUT_DIRECTORY / "sample.pdf",
         INPUT_DIRECTORY / "test_hkma_basel.pdf",
+        INPUT_DIRECTORY / "test_document.txt",
         PARSER_PATH,
     }
 )
@@ -73,13 +75,12 @@ README_REQUIREMENTS = (
     "Verify air-gapped operation",
 )
 
-# These baselines cover the two pre-existing PDFs that are now included in
-# the requested watermark set.  They make accidental rewrites observable while
-# recording their new valid, standalone PDF behavior.
+# These baselines cover the existing watermarked fixture and a temporary valid
+# PDF used where the removed repository sample was only a parser input.
 UNRELATED_FIXTURE_BASELINES = {
-    "sample.pdf": {
-        "sha256": "49f6da1182995d3b9e0381f194423279c5e5043385cb3998f4505f6616bfe893",
-        "size": 10354002,
+    "temporary_fixture.pdf": {
+        "sha256": None,
+        "size": None,
         "pdf_readable": True,
         "parser_readable": True,
     },
@@ -123,16 +124,24 @@ def test_readme_preservation_requirements_hold_for_each_documented_item(
 
 @pytest.mark.parametrize("filename", sorted(UNRELATED_FIXTURE_BASELINES))
 def test_unrelated_fixture_bytes_and_observed_readability_are_preserved(
-    filename: str,
+    filename: str, tmp_path: Path
 ):
     """Unrelated fixture bytes and their current reader behavior stay stable."""
     baseline = UNRELATED_FIXTURE_BASELINES[filename]
-    path = INPUT_DIRECTORY / filename
+    if filename == "temporary_fixture.pdf":
+        path = tmp_path / filename
+        path.write_bytes(
+            build_pdf("Temporary local PDF used to preserve parser coverage.")
+        )
+    else:
+        path = INPUT_DIRECTORY / filename
 
     assert path.exists()
     assert path not in EXPECTED_GENERATOR_OUTPUTS
-    assert path.stat().st_size == baseline["size"]
-    assert _sha256(path) == baseline["sha256"]
+    if baseline["size"] is not None:
+        assert path.stat().st_size == baseline["size"]
+    if baseline["sha256"] is not None:
+        assert _sha256(path) == baseline["sha256"]
 
     reader_error = None
     try:
@@ -204,7 +213,7 @@ def test_named_output_mapping_is_closed_over_the_three_fixture_paths(
 
 def test_pdf_parser_public_contract_is_preserved_on_valid_pdf():
     """The direct parser keeps its existing chunks and metadata semantics."""
-    path = INPUT_DIRECTORY / "sample.pdf"
+    path = INPUT_DIRECTORY / "test_hkma_basel.pdf"
     parser = PDFParser()
     chunks = parser.parse_pdf(path)
 
@@ -272,7 +281,7 @@ def test_preservation_checks_require_no_network_or_external_pdf_services(monkeyp
     readme = README_PATH.read_text(encoding="utf-8")
     assert all(filename in readme for filename in NAMED_FIXTURE_FILENAMES)
 
-    path = INPUT_DIRECTORY / "sample.pdf"
+    path = INPUT_DIRECTORY / "test_hkma_basel.pdf"
     reader = PdfReader(path, strict=True)
     assert len(reader.pages) > 0
     assert any((page.extract_text() or "").strip() for page in reader.pages)

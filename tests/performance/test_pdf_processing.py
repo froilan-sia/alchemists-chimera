@@ -10,7 +10,7 @@ pytest.importorskip("pydantic")
 
 from src.ingestor.pdf_parser import PDFParser, PDFParserConfig
 
-SAMPLE_PDF = Path(__file__).parents[2] / "data" / "input" / "sample.pdf"
+SAMPLE_PDF = Path(__file__).parents[2] / "data" / "input" / "basel_iii_framework.pdf"
 
 
 def test_sample_pdf_parsing_completes_within_five_minutes():

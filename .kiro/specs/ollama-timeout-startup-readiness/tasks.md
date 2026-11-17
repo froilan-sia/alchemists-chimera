@@ -77,7 +77,7 @@ Test changes are limited to the focused existing test modules and a new focused 
     - Leave Ollama readiness, model pull and cache behavior, FastAPI health polling, environment overrides, signal handling, and cleanup unchanged.
     - Requirements: 2.7, 3.7
 
-- [ ] 4. Verify the fix and run the complete test suite
+- [x] 4. Verify the fix and run the complete test suite
   - Re-run the exact bug-condition tests from task 1. They must now pass.
   - Re-run the exact preservation tests from task 2. They must still pass.
   - Run the focused extractor, API lifespan, and launcher tests first.
