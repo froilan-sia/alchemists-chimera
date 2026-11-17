@@ -208,14 +208,14 @@ class StagingManager:
         self.CHIMERA = self.provenance_manager.CHIMERA
         self.PROV = self.provenance_manager.PROV
         self.DC = self.provenance_manager.DC
-        
-        # Additional namespaces for staging
+        self.FINANCE = Namespace("http://example.org/finance#")
         self.STAGING = Namespace("http://alchemists-chimera.org/staging#")
         self.APPROVAL = Namespace("http://alchemists-chimera.org/approval#")
         
         # Namespace dictionary for easy access
         self.namespaces = {
             "chimera": self.CHIMERA,
+            "finance": self.FINANCE,
             "prov": self.PROV,
             "dc": self.DC,
             "staging": self.STAGING,
@@ -511,6 +511,17 @@ class StagingManager:
             logger.error(f"Failed to trigger live reload: {e}")
             raise
     
+    def _canonical_term_uri(self, value: str) -> Optional[URIRef]:
+        """Convert canonical finance/chimera terms into RDF resources."""
+        text = str(value or "").strip()
+        if text.startswith(("http://", "https://")):
+            return URIRef(text)
+        if text.startswith("finance:"):
+            return URIRef(str(self.FINANCE) + text.split(":", 1)[1])
+        if text.startswith("chimera:"):
+            return URIRef(str(self.CHIMERA) + text.split(":", 1)[1])
+        return None
+
     def _merge_into_approved_kg(self, staging_triple: StagingTriple) -> None:
         """Merge approved triple into the approved knowledge graph with proper Turtle serialization.
         
@@ -533,17 +544,22 @@ class StagingManager:
                 except Exception as e:
                     logger.warning(f"Failed to parse existing approved KG, creating new: {e}")
             
-            # Create URIRefs for the triple
-            # Use normalized URIs from provenance manager
-            subject_uri = URIRef(self.provenance_manager.create_subject_uri(staging_triple.subject))
-            predicate_uri = URIRef(self.provenance_manager.create_predicate_uri(staging_triple.predicate))
-            
-            # Check if object is a literal or URI
-            if staging_triple.object.startswith("chimera:"):
-                object_uri = URIRef(self.provenance_manager.create_object_uri(staging_triple.object))
-                obj = object_uri
-            else:
-                obj = Literal(staging_triple.object)
+            # Extracted terms already carry canonical namespace prefixes. Keep
+            # finance classes/properties in the finance namespace rather than
+            # rewriting them into project-specific subject/predicate URIs.
+            subject_uri = self._canonical_term_uri(staging_triple.subject)
+            predicate_uri = self._canonical_term_uri(staging_triple.predicate)
+            if subject_uri is None:
+                subject_uri = URIRef(
+                    self.provenance_manager.create_subject_uri(staging_triple.subject)
+                )
+            if predicate_uri is None:
+                predicate_uri = URIRef(
+                    self.provenance_manager.create_predicate_uri(staging_triple.predicate)
+                )
+
+            object_uri = self._canonical_term_uri(staging_triple.object)
+            obj = object_uri if object_uri is not None else Literal(staging_triple.object)
             
             # Add the triple to the graph
             approved_graph.add((subject_uri, predicate_uri, obj))
@@ -565,7 +581,22 @@ class StagingManager:
                                   Literal(staging_triple.confidence, datatype=XSD.float)))
             
             if hasattr(staging_triple, 'evidence') and staging_triple.evidence:
-                approved_graph.add((subject_uri, self.CHIMERA.evidence, Literal(staging_triple.evidence)))
+                approved_graph.add((subject_uri, self.CHIMERA.evidence,
+                                  Literal(staging_triple.evidence)))
+
+            source_metadata = getattr(staging_triple, "metadata", {}) or {}
+            if source_metadata.get("source_sha256"):
+                approved_graph.add((subject_uri, self.CHIMERA.sourceSha256,
+                                  Literal(source_metadata["source_sha256"])))
+            if source_metadata.get("source_document"):
+                approved_graph.add((subject_uri, self.CHIMERA.sourceDocument,
+                                  Literal(source_metadata["source_document"])))
+            if source_metadata.get("source_job_id"):
+                approved_graph.add((subject_uri, self.CHIMERA.sourceJobId,
+                                  Literal(source_metadata["source_job_id"])))
+            if source_metadata.get("page_number") is not None:
+                approved_graph.add((subject_uri, self.CHIMERA.pageNumber,
+                                  Literal(source_metadata["page_number"], datatype=XSD.integer)))
             
             # Serialize to Turtle format and retain the declared audit namespaces.
             turtle_data = approved_graph.serialize(format="turtle")

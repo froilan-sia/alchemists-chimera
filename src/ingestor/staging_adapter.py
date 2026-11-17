@@ -194,7 +194,11 @@ class CompatibleStagingManager:
         return self.comprehensive_manager.reset_staging(*args, **kwargs)
 
 
-def get_staging_manager(staging_path: Optional[Path] = None, use_comprehensive: bool = True):
+def get_staging_manager(
+    staging_path: Optional[Path] = None,
+    use_comprehensive: bool = True,
+    require_human_approval: bool = True,
+):
     """Factory function to get appropriate StagingManager.
     
     Args:
@@ -206,7 +210,9 @@ def get_staging_manager(staging_path: Optional[Path] = None, use_comprehensive: 
     """
     if use_comprehensive:
         logger.info("Using comprehensive StagingManager with backward compatibility")
-        return CompatibleStagingManager(staging_path)
+        return CompatibleStagingManager(
+            staging_path, require_human_approval=require_human_approval
+        )
     else:
         logger.info("Using simple StagingManager from pipeline")
         from .pipeline import StagingManager as SimpleStagingManager

@@ -9,10 +9,28 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import os
+import re
 from typing import Any, Iterable, List, Mapping, Optional, Sequence
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from src.models import HybridResponse, QueryRequest, RetrievalResult, RetrievalSource
+
+
+_RDF_NAMESPACES = {
+    "http://example.org/finance#": "finance",
+    "http://example.org/chimera#": "chimera",
+    "http://alchemists-chimera.org/": "chimera",
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#": "rdf",
+    "http://www.w3.org/2000/01/rdf-schema#": "rdfs",
+    "http://www.w3.org/2002/07/owl#": "owl",
+    "http://www.w3.org/2001/XMLSchema#": "xsd",
+    "http://www.w3.org/ns/shacl#": "sh",
+    "http://www.w3.org/ns/prov#": "prov",
+}
+_RDF_TERM_PATTERN = re.compile(
+    r"https?://[^\s|<>\"']+|\b(?:finance|chimera|rdf|rdfs|owl|xsd|sh|prov):[A-Za-z_][A-Za-z0-9_.-]*\b"
+)
 
 
 @dataclass
@@ -53,6 +71,59 @@ class QueryHistoryEntry:
         }
 
 
+def _readable_local_name(local_name: str) -> str:
+    """Turn an RDF local name into a readable display label."""
+    words = local_name.replace("_", " ").replace("-", " ")
+    words = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", words)
+    words = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", words)
+    words = re.sub(r"\s+", " ", words).strip()
+    return words or local_name
+
+
+def format_rdf_term(term: Any) -> str:
+    """Format an RDF URI or CURIE without creating a hyperlink.
+
+    RDF and OWL identifiers are data labels in the audit panel, not web
+    destinations. Known namespaces are rendered as a readable label followed
+    by a compact CURIE, for example ``Basel III (finance:BaselIII)``.
+    """
+    value = str(term)
+    if not value:
+        return value
+
+    if value.startswith("http://") or value.startswith("https://"):
+        parsed = urlsplit(value)
+        namespace = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        local_name = parsed.fragment or parsed.path.rsplit("/", 1)[-1]
+        for uri, prefix in _RDF_NAMESPACES.items():
+            if value.startswith(uri):
+                local_name = value[len(uri):]
+                return f"{_readable_local_name(local_name)} ({prefix}:{local_name})"
+        return _readable_local_name(local_name)
+
+    match = re.fullmatch(
+        r"(?P<prefix>finance|chimera|rdf|rdfs|owl|xsd|sh|prov):(?P<local>.+)",
+        value,
+    )
+    if match:
+        local_name = match.group("local")
+        return f"{_readable_local_name(local_name)} ({value})"
+    return value
+
+
+def format_rdf_text(text: Any) -> str:
+    """Replace raw RDF/OWL identifiers in graph text with plain labels."""
+    value = str(text)
+    return _RDF_TERM_PATTERN.sub(lambda match: format_rdf_term(match.group(0)), value)
+
+
+def display_content(result: RetrievalResult) -> str:
+    """Return source content formatted for the audit panel."""
+    if result.source == RetrievalSource.GRAPH or result.entity_links:
+        return format_rdf_text(result.content)
+    return result.content
+
+
 def split_retrieval_results(
     results: Iterable[RetrievalResult],
 ) -> tuple[List[RetrievalResult], List[RetrievalResult]]:
@@ -79,39 +150,65 @@ def split_retrieval_results(
     return graph_results, vector_results
 
 
-def provenance_link(result: RetrievalResult) -> Optional[str]:
-    """Build a safe, human-readable provenance link from result metadata.
+def _document_endpoint_base() -> str:
+    """Return the FastAPI base URL used by the Streamlit provenance links."""
+    return os.getenv("DOCUMENT_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 
-    The graph and ingestion components use different metadata names across
-    existing versions, so this accepts the established aliases and returns
-    ``None`` when a result has no source reference.
+
+def provenance_link(result: RetrievalResult) -> Optional[str]:
+    """Build a FastAPI PDF link from document provenance metadata.
+
+    Entity links are deliberately ignored here. They identify RDF resources,
+    not documents, and must never become dead ``example.org`` hyperlinks.
     """
     metadata = result.metadata or {}
     direct_link = metadata.get("provenance_url") or metadata.get("source_url")
     if direct_link:
-        return str(direct_link)
-    if result.entity_links:
-        return str(result.entity_links[0])
+        direct_value = str(direct_link)
+        if not any(direct_value.startswith(namespace) for namespace in _RDF_NAMESPACES):
+            if not direct_value.lower().split("#", 1)[0].endswith(".pdf"):
+                return direct_value
+            parsed = urlsplit(direct_value)
+            source_document = parsed.path
+            page_match = re.search(r"(?:^|&)page=(\d+)", parsed.fragment)
+            if page_match:
+                metadata = dict(metadata)
+                metadata.setdefault("page_number", page_match.group(1))
+            metadata = dict(metadata)
+            metadata.setdefault("source_document", source_document)
 
+
+    job_id = metadata.get("job_id") or metadata.get("source_job_id")
     source_document = (
         metadata.get("source_document")
         or metadata.get("sourceDocument")
         or metadata.get("document")
         or metadata.get("document_name")
     )
-    if not source_document:
+    if not job_id and source_document:
+        normalized_source = str(source_document).replace("\\", "/")
+        job_match = re.search(r"(?:^|/)jobs/([^/]+)/source\.pdf$", normalized_source)
+        if job_match:
+            job_id = job_match.group(1)
+    if not source_document and not job_id:
         return None
 
-    source_document = str(source_document)
+    # The endpoint accepts a job ID and resolves it to jobs/{job_id}/source.pdf.
+    # Otherwise use only the basename so metadata cannot introduce a path.
+    document_key = str(job_id or source_document)
+    document_key = document_key.replace("\\", "/").rsplit("/", 1)[-1]
+    if not document_key:
+        return None
+
     page = metadata.get("page_number", metadata.get("pageNumber"))
-    chunk = metadata.get("chunk_id", metadata.get("sourceChunk"))
     fragment = ""
     if page is not None:
         fragment = f"#page={quote(str(page), safe='')}"
-    elif chunk:
+    elif metadata.get("chunk_id", metadata.get("sourceChunk")):
+        chunk = metadata.get("chunk_id", metadata.get("sourceChunk"))
         fragment = f"#chunk={quote(str(chunk), safe='')}"
 
-    return f"data/input/{quote(source_document, safe='')}{fragment}"
+    return f"{_document_endpoint_base()}/documents/{quote(document_key, safe='')}{fragment}"
 
 
 def citation_records(
@@ -126,7 +223,7 @@ def citation_records(
                 "label": f"Fact {index}",
                 "marker": f"[Fact {index}]",
                 "source": "SPARQL/RDF graph",
-                "content": result.content,
+                "content": display_content(result),
                 "score": result.score,
                 "provenance": provenance_link(result),
             }

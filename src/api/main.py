@@ -5,7 +5,9 @@ Provides REST API endpoints for query processing, health checks,
 and system monitoring.
 """
 
+import asyncio
 import logging
+import os
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -14,7 +16,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from .. import __version__, __description__
 from ..config import settings
@@ -49,6 +51,53 @@ upload_store = None
 job_runner = None
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DOCUMENT_ROOTS = (
+    PROJECT_ROOT / "data" / "input",
+    PROJECT_ROOT / "data" / "uploads",
+)
+
+
+def _resolve_document_path(file_name: str) -> Path | None:
+    """Resolve one PDF from the explicitly allow-listed document locations.
+
+    The endpoint accepts a basename or an ingestion job ID only. It never
+    joins caller-controlled path components to a filesystem root and verifies
+    every candidate remains below its allow-listed directory.
+    """
+    requested = str(file_name or "")
+    if (
+        not requested
+        or requested != Path(requested).name
+        or "/" in requested
+        or "\\" in requested
+        or Path(requested).suffix.lower() not in {".pdf", ""}
+    ):
+        return None
+
+    candidates = [root / requested for root in DOCUMENT_ROOTS]
+    jobs_root = PROJECT_ROOT / "data" / "uploads" / "jobs"
+    # Job-scoped uploads are stored under {job_id}/source.pdf. A job ID is
+    # used as the public document key so the original upload name is not a
+    # filesystem lookup key.
+    if requested and not Path(requested).suffix:
+        candidates.append(jobs_root / requested / "source.pdf")
+    elif requested == "source.pdf":
+        candidates.extend(jobs_root.glob("*/source.pdf"))
+
+    allowed_roots = [root.resolve() for root in (*DOCUMENT_ROOTS, jobs_root)]
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve(strict=True)
+        except OSError:
+            continue
+        if resolved.suffix.lower() != ".pdf" or not resolved.is_file():
+            continue
+        if any(resolved == root or root in resolved.parents for root in allowed_roots):
+            return resolved
+    return None
+
+
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     """Own the retriever and ingestion worker for the ASGI application lifetime."""
@@ -57,6 +106,15 @@ async def lifespan(application: FastAPI):
     from ..router import HybridRouter
 
     retriever = HybridRouter()
+    if os.getenv("BASELINE_INGEST_ON_STARTUP", "true").lower() not in {"0", "false", "no"}:
+        try:
+            from ..ingestor.baseline_loader import bootstrap_baseline_corpus
+
+            result = await asyncio.to_thread(bootstrap_baseline_corpus)
+            logger.info("Baseline corpus bootstrap completed: %s", result)
+        except Exception as error:
+            # A baseline failure must not take down the query/API surface.
+            logger.warning("Baseline corpus bootstrap skipped: %s", error, exc_info=True)
     job_store = IngestionJobStore(Path("data/tmp/ingestion_jobs"))
     upload_store = UploadedPdfStore(Path("data/uploads/jobs"))
 
@@ -114,6 +172,7 @@ async def root() -> Dict[str, Any]:
             "query_simple": "/query/simple",
             "ingestion_submit": "/ingestion/jobs",
             "ingestion_status": "/ingestion/jobs/{job_id}",
+            "documents": "/documents/{file_name}",
         },
         "features": {
             "hybrid_retrieval": True,
@@ -123,6 +182,22 @@ async def root() -> Dict[str, Any]:
             "local_execution": True,
         },
     }
+
+
+@app.get("/documents/{file_name}", tags=["Documents"], response_class=FileResponse)
+async def serve_document(file_name: str) -> FileResponse:
+    """Serve an allow-listed PDF for local provenance navigation."""
+    if (
+        not file_name
+        or file_name != Path(file_name).name
+        or "/" in file_name
+        or "\\" in file_name
+    ):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid document name")
+    document_path = _resolve_document_path(file_name)
+    if document_path is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    return FileResponse(document_path, media_type="application/pdf", filename=document_path.name)
 
 
 @app.post(

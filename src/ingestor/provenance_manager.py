@@ -74,7 +74,7 @@ class ProvenanceManager:
     """Manages provenance tracking, URI normalization, and RDF serialization."""
     
     # Core namespaces
-    CHIMERA = Namespace("http://alchemists-chimera.org/")
+    CHIMERA = Namespace("http://example.org/chimera#")
     PROV = Namespace("http://www.w3.org/ns/prov#")
     DC = Namespace("http://purl.org/dc/terms/")
     

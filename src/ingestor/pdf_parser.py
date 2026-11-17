@@ -333,19 +333,17 @@ class PDFParser:
         Returns:
             Unique document identifier
         """
-        # Use file hash + metadata for uniqueness
-        file_hash = hashlib.md5(str(pdf_path).encode()).hexdigest()[:8]
+        # Content identity keeps chunk IDs stable when a baseline PDF is
+        # moved between data/input, uploads, and a job directory.
+        try:
+            digest = hashlib.sha256(pdf_path.read_bytes()).hexdigest()[:16]
+        except OSError:
+            digest = hashlib.sha256(str(pdf_path).encode()).hexdigest()[:16]
         metadata = reader.metadata or {}
         title = metadata.get("/Title", "")
         author = metadata.get("/Author", "")
 
-        # Create a combined identifier
-        identifier_parts = [
-            file_hash,
-            pdf_path.stem[:20],
-            title[:10] if title else "",
-            author[:10] if author else "",
-        ]
+        identifier_parts = [digest, pdf_path.stem[:20], title[:10] if title else "", author[:10] if author else ""]
 
         # Clean and join parts
         clean_parts = [

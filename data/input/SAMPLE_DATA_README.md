@@ -1,83 +1,99 @@
 # Sample Data for The Alchemist's Chimera - HKMA/Basel III Regulatory Framework
 
 ## Overview
-This directory contains realistic sample regulatory documents and knowledge graphs for testing the PDF ingestion pipeline with HKMA (Hong Kong Monetary Authority) and Basel III regulatory content.
 
-## File Structure
+This directory contains fictional demo PDFs for testing the local PDF ingestion,
+knowledge-graph, ChromaDB, provenance, and hybrid retrieval workflows. The
+sample corpus covers HKMA, Basel III, and risk-weighted-asset requirements.
+
+Every sample PDF is visibly watermarked with:
+
+> **FICTIONAL DOCUMENT - for demo purpose only**
+
+These files are demonstration fixtures, not official regulatory publications
+and must not be used as production compliance evidence.
 
 ### PDF Documents
-1. **hkma_capital_requirements.pdf**
-   - Content: HKMA Supervisory Policy Manual SA-2 on capital adequacy requirements
-   - Key concepts: CET1 ratio, Tier 1 capital, total capital ratio, leverage ratio, liquidity coverage ratio
-   - Entities: HKMA, banks, authorized institutions
-   - Purpose: Test extraction of regulatory requirements from HKMA documents
 
-2. **basel_iii_framework.pdf**
-   - Content: Basel III international regulatory framework
-   - Key concepts: Capital buffers, leverage ratio, liquidity standards, risk coverage
-   - Entities: Basel Committee, G-SIBs, D-SIBs
-   - Purpose: Test extraction of international regulatory standards
+The baseline corpus currently contains four PDFs. The application pre-loads
+these baseline PDFs during FastAPI startup. The loader checks each file's
+SHA-256 digest and stable chunk IDs in ChromaDB and the baseline graph before
+ingesting it, so restarting the application does not create duplicate records.
 
-3. **risk_weighted_assets.pdf**
-   - Content: Risk-weighted assets calculation methodology
-   - Key concepts: Credit risk RWA, market risk RWA, operational risk RWA
-   - Entities: Financial Stability Board, banks with internal models
-   - Purpose: Test extraction of technical regulatory calculations
+| File | Content and key concepts | Primary testing purpose |
+| --- | --- | --- |
+| `hkma_capital_requirements.pdf` | HKMA Supervisory Policy Manual SA-2 on capital adequacy requirements, including CET1 ratio, Tier 1 capital, total capital ratio, leverage ratio, liquidity coverage ratio. | Extract HKMA regulatory requirements and provenance. |
+| `basel_iii_framework.pdf` | Basel III international regulatory framework, including Capital buffers, leverage ratio, liquidity standards, risk coverage, G-SIBs, and D-SIBs. | Extract international regulatory standards and finance ontology concepts. |
+| `risk_weighted_assets.pdf` | Risk-weighted assets calculation methodology for Credit risk RWA, market risk RWA, operational risk RWA. | Test technical calculations, risk categories, and evidence grounding. |
+| `test_hkma_basel.pdf` | Combined HKMA/Basel III test document covering the capital requirements framework. | Exercise mixed-framework extraction and regression scenarios. |
 
-### Ontology Files
-1. **ontology/finance-ontology.ttl**
-   - Comprehensive finance ontology with regulatory concepts
-   - Classes: FinancialInstitution, Bank, RegulatoryBody, Regulation, CapitalRequirement
-   - Properties: regulatedBy, subjectTo, hasCapitalRatio, minimumRequirement
-   - Sample instances: HKMA, HSBC, Standard Chartered, Bank of China
+The baseline loader is separate from user uploads. User-submitted files are
+stored under `data/uploads/jobs/{job_id}/source.pdf` and are processed through
+the asynchronous ingestion queue. Baseline files remain under `data/input/`.
 
-2. **ontology/shapes.ttl**
-   - SHACL shapes for validation of extracted knowledge
-   - Shapes for: Bank validation, Capital ratio constraints, Provenance tracking
-   - Constraints: Capital ratios must be between 0-100%, banks must have regulators
+## Related ontology and graph files
 
-### Knowledge Graph
-1. **data/graphs/approved_kg.ttl**
-   - Pre-populated approved knowledge graph with validated triples
-   - Contains: HKMA regulatory requirements, Basel III standards, bank-specific compliance data
-   - Includes: Provenance metadata, evidence quotes, approval information
-   - Purpose: Provide baseline knowledge for hybrid retrieval testing
+### Ontology files
 
-## Key Regulatory Concepts in Sample Data
+- **`ontology/finance-ontology.ttl`** contains financial institutions,
+  regulatory concepts, capital requirements, risk categories, properties, and
+  sample instances.
+- **`ontology/shapes.ttl`** contains SHACL shapes for banks, capital ratios,
+  regulations, provenance, and extracted-term validation.
 
-### Capital Requirements
-- **CET1 Ratio**: 4.5% minimum (Common Equity Tier 1)
-- **Tier 1 Ratio**: 6.0% minimum
-- **Total Capital Ratio**: 8.0% minimum
-- **Capital Conservation Buffer**: 2.5% additional
-- **Countercyclical Buffer**: 0-2.5% variable
+### Knowledge graph
 
-### Liquidity Requirements
-- **Liquidity Coverage Ratio (LCR)**: 100% minimum
-- **Net Stable Funding Ratio (NSFR)**: 100% minimum
+- **`data/graphs/approved_kg.ttl`** is the seeded approved graph used by the
+  explorer and default graph retrieval path.
+- **`data/knowledge_graph.ttl`** is the comprehensive staging manager's
+  approved graph and receives approved extracted records and baseline markers.
 
-### Leverage Requirements
-- **Leverage Ratio**: 3.0% minimum of total exposures
+## Key regulatory concepts
 
-### Risk Categories
+### Capital requirements
+
+- **CET1 ratio:** 4.5% minimum
+- **Tier 1 ratio:** 6.0% minimum
+- **Total capital ratio:** 8.0% minimum
+- **Capital conservation buffer:** 2.5% additional
+- **Countercyclical buffer:** 0–2.5% variable
+
+### Liquidity requirements
+
+- **Liquidity Coverage Ratio (LCR):** 100% minimum
+- **Net Stable Funding Ratio (NSFR):** 100% minimum
+
+### Leverage requirements
+
+- **Leverage ratio:** 3.0% minimum of total exposures
+
+### Risk categories
+
 - Credit Risk
 - Market Risk
 - Operational Risk
 - Liquidity Risk
 
-## Entities for Testing
+## Entities for testing
 
-### Regulatory Bodies
+### Regulatory bodies
+
 - HKMA (Hong Kong Monetary Authority)
 - Basel Committee on Banking Supervision
 - Financial Stability Board
 
+- HKMA, banks, authorized institutions
+- Basel Committee, G-SIBs, D-SIBs
+- Financial Stability Board, banks with internal models
+
 ### Banks
+
 - HSBC Hong Kong
 - Standard Chartered Hong Kong
 - Bank of China (Hong Kong)
 
 ### Regulations
+
 - HKMA Capital Adequacy Requirements
 - Basel III Framework
 - HKMA Liquidity Coverage Ratio
@@ -85,117 +101,141 @@ This directory contains realistic sample regulatory documents and knowledge grap
 
 ## Sample Queries for Testing
 
-### Entity Relationship Queries
-```
+### Entity relationship queries
+
+```text
 "What are the capital requirements for HSBC Hong Kong?"
-"Which regulations apply to Bank of China Hong Kong?"
-"Who regulates Standard Chartered in Hong Kong?"
+Which regulations apply to Bank of China Hong Kong?
+Who regulates Standard Chartered in Hong Kong?
 ```
 
-### Regulatory Compliance Queries
-```
-"What is the minimum CET1 ratio under Basel III?"
-"What liquidity ratios does HKMA require?"
-"How is the leverage ratio calculated?"
+### Regulatory compliance queries
+
+```text
+What is the minimum CET1 ratio under Basel III?
+What liquidity ratios does HKMA require?
+How is the leverage ratio calculated?
 ```
 
-### Technical Calculation Queries
-```
+### Technical calculation queries
+
+```text
 "How are risk-weighted assets calculated for credit risk?"
-"What are the risk weights for sovereign exposures?"
-"What methods can banks use for operational risk RWA?"
+What are the risk weights for sovereign exposures?
+What methods can banks use for operational risk RWA?
 ```
+
+## Startup and ingestion behavior
+
+1. Start the local stack with `./start.sh`, or run the backend with
+   `PYTHONPATH=. uvicorn src.api.main:app --port 8000` alongside Streamlit on
+   port `7860`.
+2. FastAPI's startup lifespan checks the baseline corpus before starting the
+   asynchronous upload workers.
+3. Missing baseline records are loaded into ChromaDB and the baseline graph.
+   Existing SHA-256 markers and stable chunk IDs are reused rather than
+   duplicated.
+4. User uploads use `POST /ingestion/jobs`, which returns a job ID before
+   extraction begins. Poll `GET /ingestion/jobs/{job_id}` for stage progress,
+   diagnostics, checkpoints, and the final `completed` or `partial` result.
+5. Document chunks remain available for vector retrieval even when extraction
+   produces no triples or only `QUARANTINED` triples. Graph publication still
+   follows the staging and human-approval workflow.
 
 ## Usage for Testing PDF Ingestion Pipeline
 
-### 1. Document Processing
-- Upload PDFs to Surgeon's Table tab
-- Verify extraction of entities and relationships
-- Check evidence grounding with source text
+### Document processing
 
-### 2. Knowledge Graph Building
-- Extract triples with proper provenance
-- Validate against SHACL shapes
-- Stage for human-in-the-loop approval
+- Upload PDFs to Surgeon's Table tab.
+- Upload an additional PDF through the Surgeon's Table.
+- Verify entity extraction, evidence grounding, and page-level provenance.
 
-### 3. Hybrid Retrieval Testing
-- Query approved knowledge graph
-- Compare graph vs vector retrieval results
-- Test fusion of multiple result types
+### Knowledge graph building
 
-### 4. Compliance Verification
-- Verify air-gapped operation
-- Check audit trail completeness
-- Validate human approval workflow
+- Extract triples with proper provenance.
+- Extract triples with canonical finance and Chimera namespaces.
+- Validate candidates against SHACL shapes.
+- Stage records for human-in-the-loop approval.
 
-## Data Characteristics for Testing
+### Hybrid retrieval testing
 
-### Realistic Complexity
-- Multiple regulatory frameworks (HKMA + Basel III)
+- Compare deterministic graph facts with ChromaDB vector chunks.
+- Test graph/vector fusion and dynamic `α(t)` weighting.
+- Open cited source PDFs through FastAPI's `/documents/{file_name}` endpoint.
+
+### Compliance verification
+
+- Verify air-gapped operation.
+- Verify local, air-gapped operation.
+- Check audit trail completeness.
+- Validate the human approval workflow.
+- Confirm that a restart does not duplicate baseline records.
+
+## Data characteristics
+
+### Realistic complexity
+
+- Multiple regulatory frameworks: HKMA and Basel III
 - Technical calculation methodologies
-- Real-world banking entities
-- Provenance and audit requirements
+- Financial institutions and regulatory bodies
+- Provenance and audit metadata
 
-### Extraction Challenges
+### Extraction challenges
+
 - Numerical values with percentages
 - Regulatory hierarchies and relationships
 - Evidence grounding in source text
-- SHACL validation requirements
+- SHACL validation and quarantine behavior
 
-### Compliance Requirements
-- 100% air-gapped operation
+### Compliance requirements
+
+- Air-gapped local operation
 - Human-in-the-loop approval
 - Audit trail maintenance
-- Transparency in AI-assisted extraction
+- Transparent AI-assisted extraction
 
-## Maintenance and Updates
+## Maintenance
 
-### Adding New Documents
-1. Place new PDFs in `data/input/`
-2. Update ontology if new concepts are introduced
-3. Extend SHACL shapes for new validation rules
-4. Add sample queries to this documentation
+### Adding a new baseline document
 
-### Updating Ontology
-1. Add new classes to `finance-ontology.ttl`
-2. Define properties and relationships
-3. Create corresponding SHACL shapes
-4. Add sample instances for testing
+1. Place the PDF in `data/input/`.
+2. Add it to the baseline loader's configured corpus when it should be
+   automatically indexed.
+3. Update the ontology if the document introduces new concepts.
+4. Extend SHACL shapes when new validation constraints are required.
+5. Add representative queries to this document.
 
-### Knowledge Graph Updates
-1. Add approved triples to `approved_kg.ttl`
-2. Include provenance metadata
-3. Maintain evidence quotes
-4. Track approval history
+### Updating the ontology
 
-## Notes for Developers
+1. Add classes to `ontology/finance-ontology.ttl`.
+2. Define properties and relationships.
+3. Add corresponding SHACL shapes.
+4. Add sample instances where useful.
 
-### Testing Coverage
-- Unit tests should cover all regulatory concepts
-- Integration tests should process sample PDFs end-to-end
-- Performance tests should handle realistic document sizes
-- Compliance tests should verify audit requirements
+### Updating the knowledge graph
 
-### Quality Assurance
-- Verify extracted triples match source evidence
-- Check SHACL validation passes/fails appropriately
-- Confirm provenance metadata is complete
-- Ensure human approval workflow functions correctly
+1. Add only approved triples to the configured approved graph.
+2. Include provenance metadata and evidence quotes.
+3. Track approval history and preserve the audit trail.
 
-### Performance Considerations
-- Sample PDFs are sized for reasonable processing times
-- Ontology should load quickly for validation
-- Knowledge graph queries should be efficient
-- Memory usage should be monitored during extraction
+## Notes for developers
 
-## Contact and Support
+- Unit tests should cover each regulatory concept and edge case.
+- Integration tests should exercise baseline and uploaded-document paths.
+- Performance tests should use realistic document sizes.
+- Compliance tests should verify provenance, audit records, and approval rules.
+- The baseline PDFs are fictional demonstrations and are not substitutes for
+  official HKMA, Basel Committee, or other regulatory publications.
 
-For questions about the sample data or suggestions for improvement:
-- Project Repository: https://github.com/froilan-sia/alchemists-chimera
-- Documentation: See project README.md
-- Issues: Use GitHub issue tracker
+## Contact and support
+
+- Project repository: https://github.com/froilan-sia/alchemists-chimera
+- Documentation: See `README.md`
+- Issues: Use the GitHub issue tracker
 
 ## License
-Sample data provided for testing purposes only. Based on publicly available regulatory information. Not for production use.
 
-Last Updated: November 2024
+Sample data is provided for testing purposes only. It is based on publicly
+available regulatory topics and is not for production use.
+
+Last Updated: November 17, 2026

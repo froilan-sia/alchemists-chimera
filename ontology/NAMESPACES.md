@@ -2,11 +2,11 @@
 
 ## Core Namespaces
 
-### `:` (Default Namespace)
+### `finance:` (Financial Namespace)
 - **URI**: `http://example.org/finance#`
 - **Purpose**: Finance and regulatory ontology
 - **Contents**: Financial institutions, regulations, capital requirements, risk concepts
-- **Example**: `:Bank`, `:CapitalRequirement`, `:regulatedBy`
+- **Example**: `finance:Bank`, `finance:CapitalRequirement`, `finance:regulatedBy`
 
 ### `chimera:`
 - **URI**: `http://example.org/chimera#`
@@ -66,7 +66,7 @@
 
 ### finance-ontology.ttl
 ```turtle
-@prefix : <http://example.org/finance#> .
+@prefix finance: <http://example.org/finance#> .
 @prefix chimera: <http://example.org/chimera#> .
 ```
 
@@ -78,7 +78,7 @@
 
 ### approved_kg.ttl
 ```turtle
-@prefix : <http://example.org/finance#> .
+@prefix finance: <http://example.org/finance#> .
 @prefix chimera: <http://example.org/chimera#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 ```

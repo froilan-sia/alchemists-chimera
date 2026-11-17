@@ -79,6 +79,8 @@ class IncrementalPersistenceCoordinator:
             "chunk_index": chunk.chunk_index,
             "source_sha256": self.source_hash,
         })
+        if self.configuration.get("source_job_id"):
+            metadata["source_job_id"] = self.configuration["source_job_id"]
         try:
             upsert = getattr(self.vector_store, "upsert_documents", None)
             if callable(upsert):

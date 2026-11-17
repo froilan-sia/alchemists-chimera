@@ -13,6 +13,7 @@ import streamlit as st
 
 from components.hybrid_chat import (
     citation_records,
+    display_content,
     make_history_entry,
     process_query,
     provenance_link,
@@ -103,7 +104,7 @@ def _render_source_card(result: RetrievalResult, label: str) -> None:
     metadata = result.metadata or {}
     original_score = metadata.get("original_score", result.score)
     st.markdown(f"**{label}** · relevance `{float(original_score):.2f}`")
-    st.write(result.content)
+    st.write(display_content(result))
     _render_provenance(result)
 
 

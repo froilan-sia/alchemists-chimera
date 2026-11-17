@@ -225,7 +225,9 @@ class IngestionPipeline:
 
         staging_path = self.config.get("staging_path", "./data/staging")
         self.staging_manager = get_staging_manager(
-            Path(staging_path), use_comprehensive=True
+            Path(staging_path),
+            use_comprehensive=True,
+            require_human_approval=self.config.get("require_human_approval", True),
         )
 
         # Pipeline state
@@ -242,6 +244,15 @@ class IngestionPipeline:
         """Create a stable checkpoint key for a source file."""
         stat = pdf_path.stat()
         return hashlib.sha256(f"{pdf_path.resolve()}:{stat.st_size}:{stat.st_mtime_ns}".encode()).hexdigest()
+
+    @staticmethod
+    def _file_sha256(pdf_path: Path) -> str:
+        """Hash a source PDF for stable vector and provenance identity."""
+        digest = hashlib.sha256()
+        with pdf_path.open("rb") as source:
+            for block in iter(lambda: source.read(1024 * 1024), b""):
+                digest.update(block)
+        return digest.hexdigest()
 
     def _load_checkpoint(self, pdf_path: Path) -> Dict[str, Any]:
         """Load a matching checkpoint, treating malformed state as recoverable."""
@@ -353,6 +364,7 @@ class IngestionPipeline:
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
         logger.info("Starting ingestion pipeline for: %s", pdf_path)
+        source_sha256 = self._file_sha256(pdf_path)
         checkpoint = self._load_checkpoint(pdf_path)
         processed_chunk_ids = set(checkpoint.get("processed_chunks", []))
         self._active_checkpoint = checkpoint
@@ -380,6 +392,9 @@ class IngestionPipeline:
             )
             with monitor.measure("pdf_parsing"):
                 for chunk in self.pdf_parser.parse_pdf_streaming(pdf_path):
+                    chunk.metadata["source_sha256"] = source_sha256
+                    if self.config.get("source_job_id"):
+                        chunk.metadata["source_job_id"] = self.config["source_job_id"]
                     if chunk.id in processed_chunk_ids:
                         logger.info("Skipping checkpointed chunk %s", chunk.id)
                         continue
@@ -476,6 +491,9 @@ class IngestionPipeline:
                 pdf_path,
                 progress_sink=lambda event: emit({"stage": "parsing", **event}),
             ):
+                event_chunk.metadata["source_sha256"] = source_hash
+                if self.config.get("source_job_id"):
+                    event_chunk.metadata["source_job_id"] = self.config["source_job_id"]
                 self.metrics.total_chunks += 1
                 emit({
                     "stage": "extracting_entities",
@@ -625,24 +643,42 @@ class IngestionPipeline:
                 "document_name": chunk.document_name,
                 "chunk_index": chunk.chunk_index,
                 "total_chunks": chunk.total_chunks,
+                **(
+                    {"source_sha256": chunk.metadata["source_sha256"]}
+                    if chunk.metadata.get("source_sha256")
+                    else {}
+                ),
+                **(
+                    {"source_job_id": chunk.metadata["source_job_id"]}
+                    if chunk.metadata.get("source_job_id")
+                    else {}
+                ),
                 "processed_time": datetime.now().isoformat(),
             }
             for chunk in chunks
         ]
         try:
             with monitor.measure("vector_store_batch_insert"):
-                try:
-                    ids = self.vector_store.add_documents(
+                upsert = getattr(self.vector_store, "upsert_documents", None)
+                if callable(upsert):
+                    ids = upsert(
                         documents=documents,
                         metadata=metadata,
                         ids=[chunk.id for chunk in chunks],
                     )
-                except TypeError:
-                    # Preserve compatibility with injected test stores and older
-                    # VectorStore implementations that do not accept stable IDs.
-                    ids = self.vector_store.add_documents(
-                        documents=documents, metadata=metadata
-                    )
+                else:
+                    try:
+                        ids = self.vector_store.add_documents(
+                            documents=documents,
+                            metadata=metadata,
+                            ids=[chunk.id for chunk in chunks],
+                        )
+                    except TypeError:
+                        # Preserve compatibility with injected test stores and older
+                        # VectorStore implementations that do not accept stable IDs.
+                        ids = self.vector_store.add_documents(
+                            documents=documents, metadata=metadata
+                        )
             inserted = len(chunks) if ids else 0
             self.metrics.vector_insertions += inserted
             monitor.increment("vector_documents_inserted", inserted)
@@ -703,6 +739,23 @@ class IngestionPipeline:
         logger.debug(f"Validating {len(triples)} triples with SHACL")
         staging_records: List[StagingRecord] = []
         for triple in triples:
+            # Carry source identity into both staging and RDF provenance. This
+            # keeps baseline replays auditable and lets the bootstrap loader
+            # distinguish documents with the same display filename.
+            triple.metadata = dict(triple.metadata or {})
+            triple.metadata.update(
+                {
+                    "source_sha256": chunk.metadata.get("source_sha256"),
+                    "source_document": chunk.document_name,
+                    "page_number": chunk.page_number,
+                    "chunk_index": chunk.chunk_index,
+                    **(
+                        {"source_job_id": chunk.metadata["source_job_id"]}
+                        if chunk.metadata.get("source_job_id")
+                        else {}
+                    ),
+                }
+            )
             # Use SHACL validator's classification method
             (
                 classification,

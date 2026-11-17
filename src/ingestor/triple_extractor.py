@@ -101,12 +101,20 @@ class TripleExtractorConfig(BaseModel):
         description="Minimum confidence for extracted triples"
     )
     fallback_predicate: str = Field(
-        default="chimera:relatedTo", 
+        default="chimera:relatedTo",
         description="Fallback predicate when extraction fails"
     )
+    finance_prefix: str = Field(
+        default="finance:",
+        description="Canonical prefix for ontology classes and properties"
+    )
+    chimera_prefix: str = Field(
+        default="chimera:",
+        description="Prefix for project-specific instances and metadata"
+    )
     entity_prefix: str = Field(
-        default="chimera:", 
-        description="Prefix for extracted entities in triples"
+        default="chimera:",
+        description="Backward-compatible fallback prefix for unknown entities"
     )
     predicate_prefix: str = Field(
         default="chimera:", 
@@ -206,6 +214,9 @@ class TripleExtractor:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
         self.ontology_content = self._load_ontology(self.config.ontology_path)
+        self._ontology_terms, self._ontology_labels = self._index_ontology_terms(
+            self.ontology_content
+        )
         self.pending_extractions = deque()
         self.last_error: Optional[str] = None
         
@@ -231,6 +242,90 @@ class TripleExtractor:
             logger.warning("Unable to load ontology %s: %s", path, error)
             return ""
     
+    @staticmethod
+    def _index_ontology_terms(content: str) -> Tuple[Set[str], Dict[str, str]]:
+        """Index finance classes/properties and their human-readable labels."""
+        terms: Set[str] = set()
+        labels: Dict[str, str] = {}
+        for match in re.finditer(r"(?:^|[;\s])(?:finance:|:)([A-Za-z][A-Za-z0-9_]*)", content):
+            terms.add(match.group(1))
+        for match in re.finditer(
+            r"(?:finance:|:)([A-Za-z][A-Za-z0-9_]*)[^.]*?rdfs:label\s+\"([^\"]+)\"",
+            content,
+            flags=re.DOTALL,
+        ):
+            labels[TripleExtractor._term_key(match.group(2))] = match.group(1)
+        return terms, labels
+
+    @staticmethod
+    def _term_key(value: str) -> str:
+        """Normalize a label for ontology lookup."""
+        return re.sub(r"[^a-z0-9]", "", value.casefold())
+
+    @staticmethod
+    def _strip_type_suffix(value: str) -> str:
+        """Remove entity-extractor type suffixes from concept identifiers."""
+        return re.sub(r"_(?:person|org)$", "", value, flags=re.IGNORECASE)
+
+    def _canonical_entity(self, value: str) -> str:
+        """Map known finance concepts to ``finance:`` and clean unknown IDs."""
+        raw = str(value or "").strip()
+        for namespace, prefix in (
+            ("http://example.org/finance#", self.config.finance_prefix),
+            ("http://example.org/chimera#", self.config.chimera_prefix),
+            ("http://alchemists-chimera.org/", self.config.chimera_prefix),
+        ):
+            if raw.startswith(namespace):
+                raw = f"{prefix}{raw[len(namespace):]}"
+                break
+        if ":" in raw and not raw.startswith(("http://", "https://")):
+            prefix, local = raw.split(":", 1)
+            if prefix in {"finance", "chimera"}:
+                raw = f"{prefix}:{local}"
+            else:
+                raw = f"{self.config.chimera_prefix}{local}"
+        else:
+            raw = f"{self.config.chimera_prefix}{raw}"
+
+        prefix, local = raw.split(":", 1)
+        local = self._strip_type_suffix(local)
+        clean_local = re.sub(r"[^A-Za-z0-9]+", "_", local).strip("_")
+        clean_local = re.sub(r"(?:_\d+)+$", "", clean_local)
+        key = self._term_key(clean_local)
+        canonical_local = next(
+            (term for term in self._ontology_terms if self._term_key(term) == key),
+            self._ontology_labels.get(key),
+        )
+        # Common plural wording in regulatory text maps to the singular class.
+        if canonical_local is None and key.endswith("s"):
+            canonical_local = self._ontology_labels.get(key[:-1]) or next(
+                (term for term in self._ontology_terms if self._term_key(term) == key[:-1]),
+                None,
+            )
+        if canonical_local:
+            return f"{self.config.finance_prefix}{canonical_local}"
+        if prefix == self.config.finance_prefix.rstrip(":"):
+            return f"{self.config.finance_prefix}{clean_local}"
+        return f"{self.config.chimera_prefix}{clean_local}"
+
+    def _canonical_predicate(self, value: str) -> str:
+        """Map known ontology properties and keep unknown relations in Chimera."""
+        raw = str(value or "").strip()
+        if raw.startswith("http://example.org/finance#"):
+            raw = raw.rsplit("#", 1)[-1]
+        elif raw.startswith("finance:"):
+            raw = raw.split(":", 1)[1]
+        elif raw.startswith("chimera:"):
+            raw = raw.split(":", 1)[1]
+        local = re.sub(r"[^A-Za-z0-9]+", "_", raw).strip("_")
+        key = self._term_key(local)
+        canonical = next(
+            (term for term in self._ontology_terms if self._term_key(term) == key),
+            self._ontology_labels.get(key),
+        )
+        if canonical and canonical in self._ontology_terms:
+            return f"{self.config.finance_prefix}{canonical}"
+        return f"{self.config.chimera_prefix}{local or 'relatedTo'}"
     def extract_triples_from_chunk(
         self, 
         chunk: PDFChunk, 
@@ -379,18 +474,21 @@ For each triple, identify:
 Format requirements:
 - Return ONLY valid JSON array of objects
 - Each object must have: subject, predicate, object, evidence, confidence (0-1)
-- Use prefix "{self.config.entity_prefix}" for subjects and objects that are entities
-- Use prefix "{self.config.predicate_prefix}" for predicates
-- Confidence should reflect certainty about extraction (0.0-1.0)
+- Use the canonical finance namespace for concepts/classes/properties known by the ontology.
+- Use the chimera namespace only for source-specific instances, extraction metadata, or unknown entities.
+- Never use rdf:, rdfs:, owl:, xsd:, or a type suffix such as _person/_org for a financial concept.
+- Do not invent entities from anchor suffixes. The ``_ORG``/``_PERSON`` text in an anchor is type context only.
+- Preserve ontology spellings such as finance:BaselIII and finance:CapitalRequirement.
+- Return numeric values and quoted measurements as plain object values when appropriate.
 - Evidence must be an exact substring from the original text
 - Maximum {self.config.max_triples_per_chunk} triples
 
 Example response format:
 [
   {{
-    "subject": "{self.config.entity_prefix}Basel_Committee",
-    "predicate": "{self.config.predicate_prefix}develops",
-    "object": "{self.config.entity_prefix}Basel_III_framework",
+    "subject": "finance:BaselCommittee",
+    "predicate": "finance:subjectTo",
+    "object": "finance:BaselIII",
     "evidence": "The Basel III framework was developed by the Basel Committee",
     "confidence": 0.95
   }}
@@ -527,13 +625,12 @@ Extracted triples (JSON array):
                         logger.warning(f"Evidence not found in original text for triple {i}")
                         continue
                     
-                    # Ensure proper prefixes
-                    if not subject.startswith(self.config.entity_prefix):
-                        subject = f"{self.config.entity_prefix}{subject}"
-                    if not predicate.startswith(self.config.predicate_prefix):
-                        predicate = f"{self.config.predicate_prefix}{predicate}"
-                    if not obj.startswith(self.config.entity_prefix):
-                        obj = f"{self.config.entity_prefix}{obj}"
+                    # Normalize every term against the ontology. This is the
+                    # final guard against LLM-generated _person/_org concepts
+                    # and fallback chimera entities for known finance terms.
+                    subject = self._canonical_entity(subject)
+                    predicate = self._canonical_predicate(predicate)
+                    obj = self._canonical_entity(obj)
                     
                     # Normalize entity anchors
                     normalized_anchors = self._find_entity_anchors(subject, obj, entity_anchors)
@@ -631,9 +728,11 @@ Extracted triples (JSON array):
         """
         anchors = []
         
-        # Remove prefixes for matching
-        subject_clean = subject.replace(self.config.entity_prefix, "")
-        obj_clean = obj.replace(self.config.entity_prefix, "")
+        # Remove any known prefix and extraction type suffix for matching.
+        subject_clean = re.sub(r"^(?:finance|chimera):", "", subject)
+        obj_clean = re.sub(r"^(?:finance|chimera):", "", obj)
+        subject_clean = self._strip_type_suffix(subject_clean)
+        obj_clean = self._strip_type_suffix(obj_clean)
         
         # Case-insensitive matching
         for entity in entity_anchors:
@@ -691,8 +790,8 @@ Extracted triples (JSON array):
             # Create fallback relationships between entities
             for i in range(min(len(entities), 3)):
                 for j in range(i + 1, min(len(entities), i + 3)):
-                    subject = f"{self.config.entity_prefix}{entities[i].normalized_text}"
-                    object = f"{self.config.entity_prefix}{entities[j].normalized_text}"
+                    subject = self._canonical_entity(entities[i].normalized_text)
+                    object = self._canonical_entity(entities[j].normalized_text)
                     
                     # Create a generic evidence quote
                     evidence = f"{entities[i].text} mentioned with {entities[j].text}"

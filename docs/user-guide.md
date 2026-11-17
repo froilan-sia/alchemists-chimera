@@ -1,6 +1,6 @@
 # User guide: The Surgeon's Table
 
-The Surgeon's Table is the Streamlit workflow for turning a regulatory PDF into candidate knowledge-graph records and reviewing those records before or after they are written to the approved graph. It runs locally in the Streamlit process and does not call a remote ingestion API.
+The Surgeon's Table is the Streamlit workflow for turning a regulatory PDF into candidate knowledge-graph records and reviewing those records before or after they are written to the approved graph. The Streamlit UI runs on port `7860` alongside the local FastAPI backend on port `8000`, which handles asynchronous ingestion, retrieval, and document serving. Launch the pair with `./start.sh`, or run the backend explicitly with `PYTHONPATH=. uvicorn src.api.main:app --port 8000`.
 
 ## Before you start
 
@@ -18,7 +18,21 @@ The Surgeon's Table is the Streamlit workflow for turning a regulatory PDF into 
    ollama pull qwen2.5:3b
    ```
 
-4. Start Streamlit:
+4. Start the local application stack with the repository supervisor:
+
+   ```bash
+   ./start.sh
+   ```
+
+   The UI is available at `http://127.0.0.1:7860` and the FastAPI backend is
+   available at `http://127.0.0.1:8000`. If Ollama and Streamlit are already
+   running, start only the backend with:
+
+   ```bash
+   PYTHONPATH=. uvicorn src.api.main:app --host 127.0.0.1 --port 8000
+   ```
+
+   For a UI-only development session, Streamlit can still be started with:
 
    ```bash
    streamlit run app.py --server.port 7860 --server.address 127.0.0.1
@@ -39,23 +53,26 @@ The selected value is used as the reviewer string for UI edits, approvals, and r
 ## Upload and process a PDF
 
 1. Open the **🔬 Surgeon's Table** tab.
-2. Choose a non-empty file with a `.pdf` extension. The UI writes it to `data/uploads/` under a generated safe filename.
+2. Choose a non-empty file with a `.pdf` extension. The upload is accepted by FastAPI and stored under a job-scoped path such as `data/uploads/jobs/{job_id}/source.pdf`.
 3. Expand **Extraction settings** if you need different chunking values:
    - Chunk size defaults to `1000` characters and the UI permits `500`–`2000`.
    - Chunk overlap defaults to `200` characters and the UI permits `0`–`500`.
-4. Select **Start extraction**.
+4. Select **Start extraction**. The UI submits the file to `POST /ingestion/jobs` and receives a job ID immediately rather than waiting for the PDF to finish.
+5. The UI polls `GET /ingestion/jobs/{job_id}` for the durable job status. The progress bar reports monotonic real-time progress through the stages `parsing`, `extracting_entities`, `extracting_triples`, vector persistence, validation, and finalization. The terminal status is `completed`, `partial`, or another explicit failure/cancellation state; a later status update never lowers an already displayed stage or counter.
+6. The worker records job-scoped checkpoints and replay information in `data/tmp/ingestion_jobs/`. If the process is interrupted, the job can be recovered without treating completed chunks as new work.
+7. The terminal outcome is either `COMPLETED` or `PARTIAL`. `COMPLETED` means every discovered chunk finished. `PARTIAL` means one or more chunks failed while the completed chunks and their diagnostics remain available for review. A completely unreadable PDF is reported as a failed job.
 
-The pipeline processes chunks sequentially:
+The worker processes each chunk sequentially through the extraction path:
 
-1. `PDFParser` extracts page text with `pypdf` and creates chunk IDs.
+1. `PDFParser` extracts page text with `pypdf` and creates stable chunk IDs.
 2. `EntityExtractor` runs spaCy and keeps its configured entity labels.
 3. `TripleExtractor` sends one chunk at a time to Ollama and parses JSON triples.
 4. Evidence validation checks that each quote is at least 20 characters by default and occurs case-insensitively in the source chunk.
 5. `SHACLValidator` applies basic field checks and optionally uses `pyshacl` when a shapes file is configured.
 6. `ProvenanceManager` records source and extraction metadata for records that are not classified invalid.
-7. The staging manager writes the record. When the chunk produces triples, the vector store also receives the chunk for later hybrid retrieval.
+7. The staging manager writes extracted records while the document chunk is persisted to ChromaDB independently. The chunk is stored whether its triples are `VALID`, `QUARANTINED`, or empty. Baseline PDFs in `data/input/` are pre-indexed into ChromaDB and the baseline graph during API startup; the loader uses SHA-256 and stable IDs to avoid duplicate records.
 
-The progress display and final metrics show processed chunks, staged triples, valid and quarantined counts, and duration. A failure in one chunk is logged and does not stop the remaining chunks. A PDF that cannot be read at all raises a pipeline error.
+The status response and final metrics show discovered, processed, and failed chunks, staged triples, valid and quarantined counts, vector insertions, and duration. A failure in one chunk does not stop the remaining queued work.
 
 ### PDF limitations
 
@@ -105,8 +122,9 @@ The default ingestion pipeline keeps `VALID` records pending in staging. A recor
 
 ## Where records are stored
 
-- Uploaded PDFs: `data/uploads/`
+- Uploaded PDFs: `data/uploads/` for direct/local uploads and `data/uploads/jobs/{job_id}/source.pdf` for queued ingestion jobs
 - Staging JSON records: `data/staging/`, one file per record
+- Ingestion job manifests and checkpoints: `data/tmp/ingestion_jobs/`
 - Default approved graph for the comprehensive staging manager: `data/knowledge_graph.ttl`
 - Seeded explorer fallback graph: `data/graphs/approved_kg.ttl`
 - ChromaDB persistence: `data/vector_store/`
@@ -122,6 +140,13 @@ The ingestion pipeline adds document chunks to ChromaDB even when a triple is qu
 - RDF graph facts and ChromaDB chunks in separate columns;
 - source metadata and citation links when present;
 - confidence and processing time.
+
+Document chunks remain searchable in ChromaDB even when extraction produces no
+triples or when every extracted triple is `VALID` or `QUARANTINED`. Triple
+approval controls graph publication, not vector-chunk persistence. When a
+citation includes document provenance, select **Open provenance source** in
+Hybrid Chat to retrieve the cited PDF from FastAPI at `/documents/{file_name}`;
+the link includes `#page=N` so the viewer opens at the cited page.
 
 A vector hit does not mean that its extracted triples were approved. Use the provenance and staging records to distinguish source text from approved graph facts.
 

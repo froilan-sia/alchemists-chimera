@@ -1,4 +1,4 @@
-@prefix : <http://example.org/finance#> .
+@prefix finance: <http://example.org/finance#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
@@ -10,23 +10,23 @@
 # SHACL Shapes for Finance Ontology Validation
 ###############################################################################
 
-:BankShape a sh:NodeShape ;
-    sh:targetClass :Bank ;
+finance:BankShape a sh:NodeShape ;
+    sh:targetClass finance:Bank ;
     sh:property [
-        sh:path :regulatedBy ;
-        sh:class :RegulatoryBody ;
+        sh:path finance:regulatedBy ;
+        sh:class finance:RegulatoryBody ;
         sh:minCount 1 ;
         sh:message "Banks must have at least one regulatory body" ;
     ] ;
     sh:property [
-        sh:path :subjectTo ;
-        sh:class :Regulation ;
+        sh:path finance:subjectTo ;
+        sh:class finance:Regulation ;
         sh:minCount 1 ;
         sh:message "Banks must be subject to at least one regulation" ;
     ] ;
     sh:property [
-        sh:path :hasCapitalRatio ;
-        sh:class :CapitalRatio ;
+        sh:path finance:hasCapitalRatio ;
+        sh:class finance:CapitalRatio ;
         sh:minCount 1 ;
         sh:message "Banks must have at least one capital ratio" ;
     ] ;
@@ -37,8 +37,8 @@
         sh:message "Banks must have a label" ;
     ] .
 
-:RegulatoryBodyShape a sh:NodeShape ;
-    sh:targetClass :RegulatoryBody ;
+finance:RegulatoryBodyShape a sh:NodeShape ;
+    sh:targetClass finance:RegulatoryBody ;
     sh:property [
         sh:path rdfs:label ;
         sh:datatype xsd:string ;
@@ -54,8 +54,8 @@
         sh:message "Regulatory bodies may have an optional comment" ;
     ] .
 
-:RegulationShape a sh:NodeShape ;
-    sh:targetClass :Regulation ;
+finance:RegulationShape a sh:NodeShape ;
+    sh:targetClass finance:Regulation ;
     sh:property [
         sh:path rdfs:label ;
         sh:datatype xsd:string ;
@@ -64,23 +64,23 @@
         sh:message "Regulations must have exactly one label" ;
     ] ;
     sh:property [
-        sh:path :effectiveDate ;
+        sh:path finance:effectiveDate ;
         sh:datatype xsd:date ;
         sh:minCount 0 ;
         sh:maxCount 1 ;
         sh:message "Regulations may have an optional effective date" ;
     ] ;
     sh:property [
-        sh:path :appliesTo ;
-        sh:class :FinancialInstitution ;
+        sh:path finance:appliesTo ;
+        sh:class finance:FinancialInstitution ;
         sh:minCount 0 ;
         sh:message "Regulations may apply to financial institutions" ;
     ] .
 
-:CapitalRatioShape a sh:NodeShape ;
-    sh:targetClass :CapitalRatio ;
+finance:CapitalRatioShape a sh:NodeShape ;
+    sh:targetClass finance:CapitalRatio ;
     sh:property [
-        sh:path :currentLevel ;
+        sh:path finance:currentLevel ;
         sh:datatype xsd:decimal ;
         sh:minInclusive 0.0 ;
         sh:maxInclusive 100.0 ;
@@ -96,10 +96,10 @@
         sh:message "Capital ratios must have exactly one label" ;
     ] .
 
-:CapitalRequirementShape a sh:NodeShape ;
-    sh:targetClass :CapitalRequirement ;
+finance:CapitalRequirementShape a sh:NodeShape ;
+    sh:targetClass finance:CapitalRequirement ;
     sh:property [
-        sh:path :minimumRequirement ;
+        sh:path finance:minimumRequirement ;
         sh:datatype xsd:decimal ;
         sh:minInclusive 0.0 ;
         sh:maxInclusive 50.0 ;
@@ -108,10 +108,10 @@
         sh:message "Capital requirements must have a minimum requirement between 0 and 50 percent" ;
     ] .
 
-:BaselIIIShape a sh:NodeShape ;
-    sh:targetClass :BaselIII ;
+finance:BaselIIIShape a sh:NodeShape ;
+    sh:targetClass finance:BaselIII ;
     sh:property [
-        sh:path :minimumRequirement ;
+        sh:path finance:minimumRequirement ;
         sh:datatype xsd:decimal ;
         sh:minInclusive 4.5 ;
         sh:maxInclusive 13.0 ;
@@ -120,8 +120,8 @@
         sh:message "Basel III requirements must be between 4.5% and 13%" ;
     ] ;
     sh:property [
-        sh:path :requiresApproval ;
-        sh:class :RegulatoryBody ;
+        sh:path finance:requiresApproval ;
+        sh:class finance:RegulatoryBody ;
         sh:minCount 0 ;
         sh:maxCount 1 ;
         sh:message "Basel III may require approval from a regulatory body" ;
@@ -131,7 +131,7 @@
 # Generic SHACL Shapes for Dynamic Entities
 ###############################################################################
 
-:GenericEntityShape a sh:NodeShape ;
+finance:GenericEntityShape a sh:NodeShape ;
     sh:targetSubjectsOf rdf:type ;
     sh:property [
         sh:path rdf:type ;
@@ -163,7 +163,7 @@
         sh:message "Page numbers must be between 1 and 1000" ;
     ] .
 
-:GenericRelationshipShape a sh:NodeShape ;
+finance:GenericRelationshipShape a sh:NodeShape ;
     sh:targetSubjectsOf chimera:relatedTo ;
     sh:property [
         sh:path chimera:relatedTo ;
@@ -192,7 +192,7 @@
 # SHACL Shapes for Chimera Provenance
 ###############################################################################
 
-:ProvenanceShape a sh:NodeShape ;
+finance:ProvenanceShape a sh:NodeShape ;
     sh:targetClass chimera:ProvenanceRecord ;
     sh:property [
         sh:path chimera:extractionTimestamp ;
@@ -224,36 +224,53 @@
     ] .
 
 ###############################################################################
+# Constraints for extracted terms
+###############################################################################
+
+chimera:ExtractedTripleShape a sh:NodeShape ;
+    sh:targetClass chimera:ExtractedTriple ;
+    sh:property [
+        sh:path chimera:subject ;
+        sh:pattern "^(?!(?:finance|chimera):.*_(?:person|org)$).+" ;
+        sh:message "Concept identifiers must not carry _person or _org suffixes" ;
+    ] ;
+    sh:property [
+        sh:path chimera:object ;
+        sh:pattern "^(?!(?:finance|chimera):.*_(?:person|org)$).+" ;
+        sh:message "Concept identifiers must not carry _person or _org suffixes" ;
+    ] .
+
+###############################################################################
 # Constraint on relationships between specific types
 ###############################################################################
 
-:BankRegulationConstraint a sh:NodeShape ;
-    sh:targetClass :Bank ;
+finance:BankRegulationConstraint a sh:NodeShape ;
+    sh:targetClass finance:Bank ;
     sh:property [
-        sh:path :subjectTo ;
+        sh:path finance:subjectTo ;
         sh:qualifiedValueShape [
             sh:path rdf:type ;
-            sh:hasValue :CapitalRequirement ;
+            sh:hasValue finance:CapitalRequirement ;
         ] ;
         sh:qualifiedMinCount 1 ;
         sh:message "Banks must be subject to at least one capital requirement regulation" ;
     ] .
 
-:RatioValueConstraint a sh:NodeShape ;
-    sh:targetClass :CapitalRatio ;
+finance:RatioValueConstraint a sh:NodeShape ;
+    sh:targetClass finance:CapitalRatio ;
     sh:property [
-        sh:path :currentLevel ;
+        sh:path finance:currentLevel ;
         sh:datatype xsd:decimal ;
         sh:minInclusive 0.0 ;
         sh:message "Capital ratios cannot be negative" ;
     ] ;
     sh:sparql [
         sh:message "Capital ratios should typically be above 4.5% for Basel III compliance" ;
-        sh:prefixes : ;
+        sh:prefixes finance: ;
         sh:select """
             SELECT ?this ?value
             WHERE {
-                ?this :currentLevel ?value .
+                ?this finance:currentLevel ?value .
                 FILTER (?value < 4.5)
             }
         """ ;
@@ -263,7 +280,7 @@
 # Shape for evidence grounding validation
 ###############################################################################
 
-:EvidenceShape a sh:NodeShape ;
+finance:EvidenceShape a sh:NodeShape ;
     sh:targetSubjectsOf chimera:hasEvidence ;
     sh:property [
         sh:path chimera:hasEvidence ;

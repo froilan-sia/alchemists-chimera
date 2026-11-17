@@ -89,6 +89,38 @@ class VectorStore:
             self.logger.error(f"Error adding documents: {e}")
             return []
     
+    def upsert_documents(
+        self,
+        documents: List[str],
+        metadata: Optional[List[Dict[str, Any]]] = None,
+        ids: Optional[List[str]] = None,
+    ) -> List[str]:
+        """Insert or replace documents using caller-provided stable IDs."""
+        if self.collection is None:
+            self.initialize()
+        document_ids = ids or [f"doc_{i}" for i in range(len(documents))]
+        if len(document_ids) != len(documents):
+            raise ValueError("ids and documents must have the same length")
+        with self.connection_pool.connection():
+            self.collection.upsert(
+                documents=documents,
+                metadatas=metadata or [{} for _ in documents],
+                ids=document_ids,
+            )
+        return document_ids
+
+    def has_source_hash(self, source_hash: str) -> bool:
+        """Return whether Chroma contains at least one chunk for a source."""
+        if self.collection is None:
+            self.initialize()
+        try:
+            result = self.collection.get(
+                where={"source_sha256": source_hash}, include=["metadatas"]
+            )
+        except (TypeError, ValueError):
+            return False
+        return bool(result and result.get("ids"))
+
     def retrieve(self, query: str, n_results: int = 10) -> List[RetrievalResult]:
         """Retrieve similar documents for a query."""
         try:

@@ -34,6 +34,7 @@ class GraphStore:
         
         # Define namespaces
         self.EX = Namespace("http://example.org/finance#")
+        self.graph.bind("finance", self.EX)
         self.graph.bind("ex", self.EX)
         self.graph.bind("owl", OWL)
         self.graph.bind("rdf", RDF)
@@ -43,6 +44,9 @@ class GraphStore:
         # alongside the ontology so the default router has queryable facts.
         self.approved_kg_path = (
             Path(__file__).resolve().parents[1] / "data" / "graphs" / "approved_kg.ttl"
+        )
+        self.ingested_kg_path = (
+            Path(__file__).resolve().parents[1] / "data" / "knowledge_graph.ttl"
         )
 
         # Track if graph has been loaded
@@ -72,6 +76,11 @@ class GraphStore:
             if ontology_file.resolve() != approved_path and approved_path.exists():
                 self.graph.parse(approved_path, format="turtle")
                 self.logger.info("Loaded approved knowledge graph from %s", approved_path)
+            if self.ingested_kg_path.exists() and self.ingested_kg_path.resolve() not in {
+                ontology_file.resolve(), approved_path
+            }:
+                self.graph.parse(self.ingested_kg_path, format="turtle")
+                self.logger.info("Loaded ingested knowledge graph from %s", self.ingested_kg_path)
 
             self.logger.info(f"Graph contains {len(self.graph)} triples")
             self._loaded = True
@@ -176,6 +185,8 @@ class GraphStore:
                     metadata["chunk_id"] = row_metadata["sourceChunk"]
                 if row_metadata.get("pageNumber"):
                     metadata["page_number"] = row_metadata["pageNumber"]
+                if row_metadata.get("sourceJobId"):
+                    metadata["source_job_id"] = row_metadata["sourceJobId"]
 
                 entity_links = []
                 for variable in ("entity", "subject", "provenance"):
@@ -239,7 +250,7 @@ class GraphStore:
                 PREFIX chimera: <http://example.org/chimera#>
 
                 SELECT DISTINCT ?entity ?label ?type ?description ?sourceDocument
-                    ?sourceChunk ?pageNumber
+                    ?sourceChunk ?pageNumber ?sourceJobId
                 WHERE {{
                     ?entity rdfs:label ?label .
                     OPTIONAL {{ ?entity a ?type }}
@@ -247,6 +258,7 @@ class GraphStore:
                     OPTIONAL {{ ?entity chimera:sourceDocument ?sourceDocument }}
                     OPTIONAL {{ ?entity chimera:sourceChunk ?sourceChunk }}
                     OPTIONAL {{ ?entity chimera:pageNumber ?pageNumber }}
+                    OPTIONAL {{ ?entity chimera:sourceJobId ?sourceJobId }}
                     FILTER ({filters})
                 }}
                 LIMIT {max_results}

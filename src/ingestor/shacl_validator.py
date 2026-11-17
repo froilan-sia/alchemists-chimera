@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple, Union
 import tempfile
 import json
+import re
 
 # Try to import pyshacl, but provide fallback if not available
 try:
@@ -88,7 +89,8 @@ chimera:TripleShape
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
-        sh:message "Subject is required and must be a string" ;
+        sh:pattern "^(?!(?:finance|chimera):.*_(?:person|org)$).+" ;
+        sh:message "Subject must not contain an entity-extractor type suffix" ;
     ] ;
     sh:property [
         sh:path chimera:predicate ;
@@ -102,7 +104,8 @@ chimera:TripleShape
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
-        sh:message "Object is required and must be a string" ;
+        sh:pattern "^(?!(?:finance|chimera):.*_(?:person|org)$).+" ;
+        sh:message "Object must not contain an entity-extractor type suffix" ;
     ] ;
     sh:property [
         sh:path chimera:confidence ;
@@ -204,7 +207,18 @@ chimera:ShortEvidenceShape
         elif len(triple.evidence) < 10:
             issues.append(f"Evidence too short ({len(triple.evidence)} chars, minimum 10)")
         
-        # Check for reasonable entity prefixes
+        # Entity extractor type suffixes are metadata, never ontology IDs.
+        malformed_suffix = re.compile(r"^(?:finance|chimera):.*_(?:person|org)$", re.IGNORECASE)
+        for field_name, value in (
+            ("subject", triple.subject),
+            ("object", triple.object),
+        ):
+            if value and malformed_suffix.match(value):
+                issues.append(
+                    f"Malformed {field_name} entity suffix; remove _person/_org from concepts"
+                )
+
+        # Check reasonable entity prefixes
         if triple.subject and ':' not in triple.subject and not triple.subject.startswith('http'):
             messages.append(f"Subject missing namespace prefix: {triple.subject}")
         

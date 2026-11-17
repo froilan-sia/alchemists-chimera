@@ -196,12 +196,14 @@ class AsyncIngestionJobRunner:
                 chunk_size=config.chunk_size,
                 chunk_overlap=config.chunk_overlap,
                 checkpoint_path=manifest.get("_checkpoint_path"),
+                source_job_id=status.job_id,
             )
         except TypeError:
             pipeline = self.pipeline_factory({
                 "chunk_size": config.chunk_size,
                 "chunk_overlap": config.chunk_overlap,
                 "checkpoint_path": manifest.get("_checkpoint_path"),
+                "source_job_id": status.job_id,
             })
 
         def emit(event: Dict[str, Any]) -> None:
