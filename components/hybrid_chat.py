@@ -153,15 +153,29 @@ def split_retrieval_results(
 def _document_endpoint_base() -> str:
     """Resolve the document API origin for local and Spaces deployments.
 
-    Local development reaches the backend on port 8000. Hugging Face exposes
-    only the public Streamlit origin, so the link must stay relative there and
-    resolve through the Space's public `/documents` route/proxy.
+    Local development reaches the backend on port 8000. Hugging Face gives
+    the browser a public ``SPACE_HOST`` while FastAPI listens internally, so
+    links use that public origin and rely on the deployment's ``/documents``
+    route/proxy. ``DOCUMENT_API_BASE_URL`` remains an explicit override for
+    local reverse proxies and custom deployments.
     """
     configured = os.getenv("DOCUMENT_API_BASE_URL")
     if configured is not None:
         return configured.rstrip("/")
-    if os.getenv("SPACE_HOST") or os.getenv("HF_SPACE_ID"):
-        return ""
+
+    space_host = os.getenv("SPACE_HOST")
+    if not space_host and os.getenv("HF_SPACE_ID"):
+        space_host = f"{os.getenv('HF_SPACE_ID').replace('/', '-')}.hf.space"
+    if space_host:
+        # SPACE_HOST is the public origin supplied by Hugging Face. Do not
+        # emit 127.0.0.1:8000 here: that address belongs to the user's
+        # browser, not to the Space container. A Space deployment should
+        # route /documents to the internal FastAPI service at this origin.
+        normalized_host = space_host.strip().rstrip("/")
+        if not normalized_host.startswith(("http://", "https://")):
+            normalized_host = f"https://{normalized_host}"
+        return normalized_host
+
     return "http://127.0.0.1:8000"
 
 
@@ -186,7 +200,6 @@ def provenance_link(result: RetrievalResult) -> Optional[str]:
                 metadata.setdefault("page_number", page_match.group(1))
             metadata = dict(metadata)
             metadata.setdefault("source_document", source_document)
-
 
     job_id = metadata.get("job_id") or metadata.get("source_job_id")
     source_document = (

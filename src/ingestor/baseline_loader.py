@@ -10,7 +10,11 @@ from typing import Any, Callable, Dict, Iterable, Optional
 from rdflib import Graph, Literal, Namespace, RDF
 
 from ..config import settings
-from ..vector_store import VectorStore
+from ..vector_store import (
+    VECTOR_COLLECTION_NAME,
+    VectorStore,
+    canonical_vector_store_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +48,22 @@ class BaselineCorpusLoader:
         pipeline_factory: Optional[Callable[..., Any]] = None,
         file_names: Iterable[str] = BASELINE_FILENAMES,
     ) -> None:
-        self.baseline_dir = Path(baseline_dir)
+        project_root = Path(__file__).resolve().parents[2]
+        baseline_path = Path(baseline_dir)
+        graph_store_path = Path(graph_path)
+        self.baseline_dir = (
+            baseline_path if baseline_path.is_absolute() else project_root / baseline_path
+        )
         self.vector_store = vector_store
-        self.graph_path = Path(graph_path)
+        self.vector_store_path = canonical_vector_store_path(
+            str(getattr(vector_store, "persist_directory", settings.vector_store_path))
+        )
+        self.collection_name = VECTOR_COLLECTION_NAME
+        self.graph_path = (
+            graph_store_path
+            if graph_store_path.is_absolute()
+            else project_root / graph_store_path
+        )
         self.pipeline_factory = pipeline_factory
         self.file_names = tuple(file_names)
 
@@ -78,7 +95,8 @@ class BaselineCorpusLoader:
         if self.pipeline_factory is not None:
             try:
                 return self.pipeline_factory(
-                    vector_store_path=str(getattr(self.vector_store, "persist_directory", settings.vector_store_path)),
+                    vector_store_path=self.vector_store_path,
+                    vector_collection_name=self.collection_name,
                     baseline=True,
                     require_human_approval=False,
                 )
@@ -88,9 +106,8 @@ class BaselineCorpusLoader:
 
         return IngestionPipeline(
             {
-                "vector_store_path": str(
-                    getattr(self.vector_store, "persist_directory", settings.vector_store_path)
-                ),
+                "vector_store_path": self.vector_store_path,
+                "vector_collection_name": self.collection_name,
                 "baseline": True,
                 "require_human_approval": False,
             }
@@ -98,8 +115,8 @@ class BaselineCorpusLoader:
 
     def _get_vector_store(self) -> Any:
         if self.vector_store is None:
-            self.vector_store = VectorStore(settings.vector_store_path)
-            self.vector_store.initialize()
+            self.vector_store = VectorStore(self.vector_store_path)
+            self.vector_store.initialize(self.collection_name)
         return self.vector_store
 
     def _vector_indexed(self, source_hash: str, file_name: str) -> bool:

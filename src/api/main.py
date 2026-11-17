@@ -213,7 +213,12 @@ async def serve_document(file_name: str) -> FileResponse:
     document_path = _resolve_document_path(file_name)
     if document_path is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
-    return FileResponse(document_path, media_type="application/pdf", filename=document_path.name)
+    return FileResponse(
+        document_path,
+        media_type="application/pdf",
+        filename=document_path.name,
+        content_disposition_type="inline",
+    )
 
 
 @app.post(
@@ -290,6 +295,7 @@ async def get_ingestion_job(job_id: str) -> IngestionJobStatus:
     except UnknownJobError as error:
         raise HTTPException(status_code=404, detail="Unknown ingestion job") from error
 
+@app.get("/health", response_model=HealthStatus, tags=["Monitoring"])
 async def health_check() -> HealthStatus:
     """Report the health of API, retrieval, and ingestion components."""
     components: Dict[str, str] = {}

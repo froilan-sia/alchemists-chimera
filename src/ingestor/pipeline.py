@@ -31,7 +31,11 @@ from ..performance import (
     ResourceLimiter,
     ResourceLimitError,
 )
-from ..vector_store import VectorStore
+from ..vector_store import (
+    VECTOR_COLLECTION_NAME,
+    VectorStore,
+    canonical_vector_store_path,
+)
 from .entity_extractor import EntityExtractor, EntityExtractorConfig, ExtractedEntity
 
 # Local imports
@@ -214,11 +218,13 @@ class IngestionPipeline:
 
         # 6. Vector Store
         self.vector_store = VectorStore(
-            persist_directory=self.config.get(
-                "vector_store_path", "./data/vector_store"
+            persist_directory=canonical_vector_store_path(
+                self.config.get("vector_store_path", settings.vector_store_path)
             )
         )
-        self.vector_store.initialize()
+        self.vector_store.initialize(
+            self.config.get("vector_collection_name", VECTOR_COLLECTION_NAME)
+        )
 
         # 7. Comprehensive Staging Manager with backward compatibility
         from .staging_adapter import get_staging_manager

@@ -63,9 +63,14 @@ try:
 except ImportError:
     HAS_CORE = False
 
-@st.cache_resource(show_spinner=False)
 def get_hybrid_router() -> HybridRouter:
-    """Create the cached router used by the Hybrid Chimera Chat tab."""
+    """Create a router with a fresh view of the persistent vector collection.
+
+    FastAPI bootstraps the baseline corpus in a separate process. Caching this
+    router let Streamlit retain a Chroma collection object created while the
+    collection was empty, so the audit panel could report no vector chunks
+    until the process was restarted.
+    """
     return HybridRouter(
         fusion_engine=get_fusion_engine(),
         response_generator=ResponseGenerator(),
