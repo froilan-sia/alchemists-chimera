@@ -300,9 +300,25 @@ class TripleExtractor:
         """Remove entity-extractor type suffixes from concept identifiers."""
         return re.sub(r"_(?:person|org)$", "", value, flags=re.IGNORECASE)
 
+    @staticmethod
+    def _is_literal_value(value: str) -> bool:
+        """Recognize quantitative/date values that must remain RDF literals."""
+        candidate = str(value or "").strip().strip('"\'')
+        return bool(
+            re.fullmatch(
+                r"[-+]?\d+(?:\.\d+)?\s*(?:%|percent|percentage|bps?|basis\s+points?|x)?",
+                candidate,
+                flags=re.IGNORECASE,
+            )
+            or re.fullmatch(r"\d{4}-\d{2}-\d{2}", candidate)
+            or re.fullmatch(r"[-+]?\d+(?:\.\d+)?\s*/\s*\d+(?:\.\d+)?", candidate)
+        )
+
     def _canonical_entity(self, value: str) -> str:
         """Map known finance concepts to ``finance:`` and clean unknown IDs."""
         raw = str(value or "").strip()
+        if self._is_literal_value(raw):
+            return raw.strip('"\'')
         for namespace, prefix in (
             ("http://example.org/finance#", self.config.finance_prefix),
             ("http://example.org/chimera#", self.config.chimera_prefix),
@@ -359,9 +375,23 @@ class TripleExtractor:
         if canonical and canonical in self._ontology_terms:
             return f"{self.config.finance_prefix}{canonical}"
         return f"{self.config.chimera_prefix}{local or 'relatedTo'}"
+
+    def _canonical_object(self, value: str, evidence: str) -> str:
+        """Canonicalize entities without converting measured values to URIs."""
+        raw = str(value or "").strip().strip('"\'')
+        if raw.casefold() in {"text", "literal", "value", "chimera:text"}:
+            quantitative_match = re.search(
+                r"[-+]?\d+(?:\.\d+)?\s*(?:%|percent|percentage|bps?|basis\s+points?)",
+                evidence or "",
+                flags=re.IGNORECASE,
+            )
+            if quantitative_match:
+                return quantitative_match.group(0)
+        return self._canonical_entity(raw)
+
     def extract_triples_from_chunk(
-        self, 
-        chunk: PDFChunk, 
+        self,
+        chunk: PDFChunk,
         entities: Optional[List[ExtractedEntity]] = None
     ) -> Tuple[List[ExtractedTriple], ExtractionStatus]:
         """Extract triples from a single PDF chunk.
@@ -512,7 +542,8 @@ Format requirements:
 - Never use rdf:, rdfs:, owl:, xsd:, or a type suffix such as _person/_org for a financial concept.
 - Do not invent entities from anchor suffixes. The ``_ORG``/``_PERSON`` text in an anchor is type context only.
 - Preserve ontology spellings such as finance:BaselIII and finance:CapitalRequirement.
-- Return numeric values and quoted measurements as plain object values when appropriate.
+- Treat quantitative values as literal objects: preserve the exact value, decimal places, and symbols (for example 13.0%, 14.2%, 15.6%, 8.0, or 100%). Never convert a measured value into a URI or a placeholder such as chimera:text.
+- If the object is a percentage, ratio, amount, date, or other measurement, return that value directly as the object string.
 - Evidence must be an exact substring from the original text
 - Maximum {self.config.max_triples_per_chunk} triples
 
@@ -619,17 +650,13 @@ Extracted triples (JSON array):
             # Clean up response (remove markdown, code blocks, etc.)
             response_text = self._clean_response_text(response_text)
             
-            # Parse JSON from response
-            try:
-                triples_data = json.loads(response_text)
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse JSON from response: {e}")
-                logger.debug(f"Raw response: {response_text[:500]}...")
-                return []
-            
-            # Validate response format
+            # Normalize a fenced response, leading prose, a single object,
+            # or a regular JSON array into one predictable list.
+            triples_data = self._extract_json_payload(response_text)
+            if isinstance(triples_data, dict):
+                triples_data = [triples_data]
             if not isinstance(triples_data, list):
-                logger.warning(f"Expected list but got {type(triples_data)}")
+                logger.warning(f"Expected JSON list/object but got {type(triples_data)}")
                 return []
             
             validated_triples = []
@@ -647,6 +674,8 @@ Extracted triples (JSON array):
                     obj = str(triple_data["object"]).strip()
                     evidence = str(triple_data["evidence"]).strip()
                     confidence = float(triple_data["confidence"])
+                    if not math.isfinite(confidence):
+                        raise ValueError("confidence must be finite")
                     
                     # Validate confidence range
                     if not 0.0 <= confidence <= 1.0:
@@ -663,7 +692,7 @@ Extracted triples (JSON array):
                     # and fallback chimera entities for known finance terms.
                     subject = self._canonical_entity(subject)
                     predicate = self._canonical_predicate(predicate)
-                    obj = self._canonical_entity(obj)
+                    obj = self._canonical_object(obj, evidence)
                     
                     # Normalize entity anchors
                     normalized_anchors = self._find_entity_anchors(subject, obj, entity_anchors)
@@ -699,29 +728,33 @@ Extracted triples (JSON array):
             logger.error(f"Failed to parse response: {e}")
             return []
     
+    def _extract_json_payload(self, text: str) -> Any:
+        """Extract the first valid JSON array or object from model output."""
+        cleaned = self._clean_response_text(text)
+        decoder = json.JSONDecoder()
+        candidates = [
+            index for index in (cleaned.find("["), cleaned.find("{")) if index >= 0
+        ]
+        for start in sorted(candidates):
+            try:
+                payload, _ = decoder.raw_decode(cleaned[start:])
+                return payload
+            except json.JSONDecodeError:
+                continue
+        logger.warning("Failed to locate JSON payload in response")
+        logger.debug("Raw response: %s...", cleaned[:500])
+        return None
+
     def _clean_response_text(self, text: str) -> str:
-        """Clean up LLM response text to extract JSON.
-        
-        Args:
-            text: Raw response text from LLM
-            
-        Returns:
-            Cleaned text with JSON content
+        """Clean model output before JSON payload extraction.
+
+        Markdown fences and natural-language lead-in are left in place until
+        ``_extract_json_payload`` locates the first valid JSON value.
         """
-        # Remove markdown code blocks
-        text = re.sub(r'```json\s*', '', text)
-        text = re.sub(r'```\s*', '', text)
-        
-        # Remove leading/trailing whitespace
-        text = text.strip()
-        
-        # Find JSON array start and end
-        json_start = text.find('[')
-        json_end = text.rfind(']')
-        
-        if json_start >= 0 and json_end > json_start:
-            text = text[json_start:json_end + 1]
-        
+        # Remove markdown code blocks and surrounding whitespace.
+        text = re.sub(r"```(?:json)?\s*", "", text or "", flags=re.IGNORECASE)
+        text = re.sub(r"```\s*", "", text).strip()
+
         return text
     
     def _validate_evidence(self, evidence: str, original_text: str) -> bool:
@@ -803,6 +836,17 @@ Extracted triples (JSON array):
         
         return anchors
     
+    @staticmethod
+    def _fallback_evidence(text: str, first_entity: str, second_entity: str) -> str:
+        """Return a source-grounded sentence containing both fallback entities."""
+        first = str(first_entity or "").strip()
+        second = str(second_entity or "").strip()
+        for sentence in re.split(r"(?<=[.!?])\s+", text or ""):
+            lowered = sentence.casefold()
+            if first.casefold() in lowered and second.casefold() in lowered:
+                return sentence.strip()
+        return ""
+
     def _create_fallback_triples(
         self, 
         chunk: PDFChunk, 
@@ -826,8 +870,11 @@ Extracted triples (JSON array):
                     subject = self._canonical_entity(entities[i].normalized_text)
                     object = self._canonical_entity(entities[j].normalized_text)
                     
-                    # Create a generic evidence quote
-                    evidence = f"{entities[i].text} mentioned with {entities[j].text}"
+                    evidence = self._fallback_evidence(
+                        chunk.text, entities[i].text, entities[j].text
+                    )
+                    if not evidence:
+                        continue
                     
                     triple = ExtractedTriple(
                         subject=subject,

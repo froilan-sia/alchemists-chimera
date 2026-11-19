@@ -39,14 +39,20 @@ class FusionEngine:
         self,
         graph_results: List[RetrievalResult],
         vector_results: List[RetrievalResult],
-        alpha: float = None
+        alpha: float = None,
+        query_type: Any = None,
+        max_results: int = None,
     ) -> List[RetrievalResult]:
-        """Fuse graph and vector results using configured strategy."""
+        """Fuse graph and vector retrieval results using configured strategy.
+
+        Entity-relationship queries retain the best vector chunk even when the
+        graph receives the 80% routing weight.
+        """
         try:
-            # Use provided alpha or default
             alpha = alpha if alpha is not None else self.config.default_alpha
-            
-            self.logger.info(f"Fusing results with alpha={alpha}")
+            limit = max_results or self.config.max_results
+            relationship_query = getattr(query_type, "value", query_type) == "entity_relationship"
+            self.logger.info("Fusing results with alpha=%s", alpha)
             
             # Apply selected strategy
             if self.config.strategy == "weighted":
@@ -58,12 +64,10 @@ class FusionEngine:
                     graph_results, vector_results
                 )
             elif self.config.strategy == "hybrid":
-                # Apply weighted fusion first, then RRF
-                weighted = self._weighted_fusion(
+                # Keep the dynamic alpha. The old implementation computed
+                # weighted results and then discarded them before returning RRF.
+                fused_results = self._weighted_fusion(
                     graph_results, vector_results, alpha
-                )
-                fused_results = self._reciprocal_rank_fusion(
-                    graph_results, vector_results
                 )
             else:
                 # Default to weighted
@@ -71,15 +75,17 @@ class FusionEngine:
                     graph_results, vector_results, alpha
                 )
             
-            # Limit results
-            fused_results = fused_results[:self.config.max_results]
-            
-            # Deduplicate if configured
             if self.config.deduplicate:
                 fused_results = self._deduplicate(fused_results)
-            
-            self.logger.info(f"Fusion produced {len(fused_results)} results")
-            
+            fused_results.sort(key=lambda result: result.score, reverse=True)
+            fused_results = fused_results[:limit]
+
+            if relationship_query and graph_results and vector_results and limit > 1:
+                fused_results = self._ensure_vector_result(
+                    fused_results, vector_results, limit, alpha
+                )
+
+            self.logger.info("Fusion produced %s results", len(fused_results))
             return fused_results
             
         except Exception as e:
@@ -199,6 +205,38 @@ class FusionEngine:
         
         return fused
     
+    def _ensure_vector_result(
+        self,
+        fused_results: List[RetrievalResult],
+        vector_results: List[RetrievalResult],
+        limit: int,
+        alpha: float,
+    ) -> List[RetrievalResult]:
+        """Keep one vector result visible when relationship fusion has both branches."""
+        if any(result.metadata.get("original_source") == "vector" for result in fused_results):
+            return fused_results
+
+        best_vector = max(vector_results, key=lambda result: result.score)
+        vector_result = RetrievalResult(
+            content=best_vector.content,
+            source=RetrievalSource.HYBRID,
+            score=best_vector.score * (1 - alpha),
+            metadata={
+                **best_vector.metadata,
+                "fusion_weight": 1 - alpha,
+                "original_source": "vector",
+                "original_score": best_vector.score,
+            },
+            entity_links=best_vector.entity_links,
+            document_id=best_vector.document_id,
+            chunk_index=best_vector.chunk_index,
+        )
+        if len(fused_results) >= limit:
+            fused_results = fused_results[: max(0, limit - 1)]
+        fused_results.append(vector_result)
+        fused_results.sort(key=lambda result: result.score, reverse=True)
+        return fused_results
+
     def _deduplicate(self, results: List[RetrievalResult]) -> List[RetrievalResult]:
         """Remove duplicate results based on content."""
         seen = set()

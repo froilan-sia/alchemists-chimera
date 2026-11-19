@@ -60,6 +60,19 @@ def _backend_manager(manager: Any) -> Any:
     return getattr(manager, "comprehensive_manager", manager)
 
 
+def _reload_active_graph(manager: Any) -> None:
+    """Reload the active RDFLib graph after a successful approval batch."""
+    backend = _backend_manager(manager)
+    graph_store = None
+    get_graph = getattr(backend, "get_graph_store", None)
+    if callable(get_graph):
+        graph_store = get_graph()
+    if graph_store is not None:
+        reload_graph = getattr(graph_store, "reload", None)
+        if callable(reload_graph):
+            reload_graph()
+
+
 def _validation_status(manager: Any, record_id: str, staging_triple: Any) -> str:
     """Resolve the persisted validation status for a staging record."""
     source_record = getattr(manager, "staging_records", {}).get(record_id)
@@ -117,7 +130,7 @@ def staging_table_rows(manager: Any) -> List[Dict[str, Any]]:
 def filter_and_sort_rows(
     rows: Sequence[Mapping[str, Any]],
     search_text: str = "",
-    status_filter: str = "All",
+    status_filter: str = "PENDING",
     sort_column: str = "Subject",
     descending: bool = False,
 ) -> List[Dict[str, Any]]:
@@ -125,7 +138,13 @@ def filter_and_sort_rows(
     normalized_search = search_text.strip().lower()
     filtered: List[Dict[str, Any]] = []
     for row in rows:
-        matches_status = status_filter == "All" or row.get("SHACL Status") == status_filter
+        row_approval_status = str(row.get("Approval Status", "")).upper()
+        row_validation_status = str(row.get("SHACL Status", "")).upper()
+        normalized_filter = status_filter.upper()
+        matches_status = normalized_filter == "ALL" or (
+            row_approval_status == normalized_filter
+            or row_validation_status == normalized_filter
+        )
         searchable = " ".join(
             str(row.get(column, ""))
             for column in ("Subject", "Predicate", "Object", "Evidence Quote")
@@ -209,6 +228,8 @@ def approve_records(manager: Any, record_ids: Iterable[str], reviewer: str) -> L
             continue
         if manager.approve_triple(record_id=record_id, reviewer=reviewer):
             approved.append(record_id)
+    if approved:
+        _reload_active_graph(manager)
     return approved
 
 
@@ -364,8 +385,9 @@ def render_surgeons_table(
         key="surgeons_filter_text",
     )
     status_filter = controls[1].selectbox(
-        "SHACL status",
-        ["All", "VALID", "QUARANTINED"],
+        "Approval status",
+        ["All", "PENDING", "APPROVED", "QUARANTINED", "REJECTED"],
+        index=1,
         key="surgeons_status_filter",
     )
     sort_column = controls[2].selectbox(

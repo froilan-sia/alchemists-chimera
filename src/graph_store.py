@@ -6,6 +6,7 @@ Integrates with the finance ontology from the existing finance-ontology-rag repo
 """
 
 import logging
+import re
 from typing import List, Optional, Dict, Any
 from pathlib import Path
 
@@ -55,42 +56,77 @@ class GraphStore:
         self.logger.info("GraphStore initialized")
     
     def load_ontology(self) -> bool:
-        """Load the ontology and the local approved knowledge graph."""
-        try:
-            # Check if file exists
-            ontology_file = Path(self.ontology_path)
-            
-            if ontology_file.exists():
-                # Load existing ontology
-                self.graph.parse(self.ontology_path, format="turtle")
-                self.logger.info(f"Loaded ontology from {self.ontology_path}")
-            else:
-                # Create default ontology structure
-                self.logger.info("Creating default ontology structure")
-                self._create_default_ontology()
+        """Load the ontology and both local knowledge-graph sources.
 
-            # The ontology provides schemas while the approved graph provides
-            # reviewed sample facts used by the chat and explorer. Avoid
-            # parsing twice when a caller explicitly supplies that same file.
-            approved_path = self.approved_kg_path.resolve()
-            if ontology_file.resolve() != approved_path and approved_path.exists():
-                self.graph.parse(approved_path, format="turtle")
-                self.logger.info("Loaded approved knowledge graph from %s", approved_path)
-            if self.ingested_kg_path.exists() and self.ingested_kg_path.resolve() not in {
-                ontology_file.resolve(), approved_path
-            }:
-                self.graph.parse(self.ingested_kg_path, format="turtle")
-                self.logger.info("Loaded ingested knowledge graph from %s", self.ingested_kg_path)
+        Loading is deliberately idempotent and replaces the in-memory graph so
+        an approval reload cannot leave removed or superseded triples behind.
+        A few checked-in demo graphs predate their namespace declarations; the
+        parser adds those declarations without changing the stored files.
+        """
+        self.graph = Graph()
+        self._bind_namespaces()
+        self._loaded = False
 
-            self.logger.info(f"Graph contains {len(self.graph)} triples")
-            self._loaded = True
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Failed to load ontology: {e}")
-            # Create default ontology as fallback
+        ontology_file = Path(self.ontology_path)
+        sources = [
+            (ontology_file, "ontology"),
+            (self.approved_kg_path, "approved knowledge graph"),
+            (self.ingested_kg_path, "ingested knowledge graph"),
+        ]
+        loaded_paths = set()
+        loaded_any_source = False
+
+        for source_path, description in sources:
+            resolved_path = source_path.resolve()
+            if resolved_path in loaded_paths or not source_path.exists():
+                continue
+            try:
+                self._parse_turtle_source(source_path)
+                loaded_paths.add(resolved_path)
+                loaded_any_source = True
+                self.logger.info("Loaded %s from %s", description, source_path)
+            except Exception as error:
+                self.logger.warning(
+                    "Could not load %s from %s: %s", description, source_path, error
+                )
+
+        if not loaded_any_source:
+            self.logger.info("Creating default ontology structure")
             self._create_default_ontology()
-            return True
+
+        self._loaded = True
+        self.logger.info("Graph contains %s triples", len(self.graph))
+        return True
+
+    def reload(self) -> bool:
+        """Clear and immediately reload all configured RDF sources."""
+        return self.load_ontology()
+
+    def _bind_namespaces(self) -> None:
+        """Bind namespaces after creating or replacing the RDFLib graph."""
+        self.graph.bind("finance", self.EX)
+        self.graph.bind("ex", self.EX)
+        self.graph.bind("owl", OWL)
+        self.graph.bind("rdf", RDF)
+        self.graph.bind("rdfs", RDFS)
+
+    def _parse_turtle_source(self, source_path: Path) -> None:
+        """Parse Turtle while tolerating legacy demo prefix omissions."""
+        content = source_path.read_text(encoding="utf-8")
+        declarations = []
+        if re.search(r"(?<![A-Za-z0-9_]):[A-Za-z_][A-Za-z0-9_]*", content) and not re.search(
+            r"@prefix\s*:\s*<", content, flags=re.IGNORECASE
+        ):
+            declarations.append("@prefix : <http://example.org/finance#> .")
+        if re.search(r"\bapproval:", content) and not re.search(
+            r"@prefix\s+approval:\s*<", content, flags=re.IGNORECASE
+        ):
+            declarations.append(
+                "@prefix approval: <http://alchemists-chimera.org/approval#> ."
+            )
+        if declarations:
+            content = "\n".join(declarations) + "\n" + content
+        self.graph.parse(data=content, format="turtle", publicID=str(source_path))
     
     def _create_default_ontology(self):
         """Create default ontology structure."""
@@ -166,9 +202,17 @@ class GraphStore:
             result_bindings = self.graph.query(query)
             
             # Process results
-            for i, row in enumerate(result_bindings):
-                # Format result content
+            result_index = 0
+            for row in result_bindings:
+                # OWL ontology declarations describe the schema, not a domain
+                # fact. Keep them out of retrieval cards even when a caller's
+                # SPARQL query does not add its own filter.
+                if self._is_ontology_metadata_row(row, result_bindings.vars):
+                    continue
+
                 content = self._format_result(row)
+                if not content:
+                    continue
                 row_metadata = {
                     str(variable): str(row[variable])
                     for variable in result_bindings.vars
@@ -176,9 +220,10 @@ class GraphStore:
                 }
                 metadata = {
                     "type": "graph_query",
-                    "result_index": i,
+                    "result_index": result_index,
                     "query_type": "sparql",
                 }
+                result_index += 1
                 if row_metadata.get("sourceDocument"):
                     metadata["source_document"] = row_metadata["sourceDocument"]
                 if row_metadata.get("sourceChunk"):
@@ -194,7 +239,7 @@ class GraphStore:
                         entity_links.append(row_metadata[variable])
 
                 # Calculate score (simplified)
-                score = max(0.5, 1.0 - (i * 0.05))
+                score = max(0.5, 1.0 - ((result_index - 1) * 0.05))
 
                 # Create retrieval result
                 result = RetrievalResult(
@@ -245,8 +290,11 @@ class GraphStore:
                 f'|| contains(lcase(str(?description)), "{term}"))'
                 for term in terms
             )
+            query_limit = max(max_results * 10, max_results)
             query = f"""
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                PREFIX owl: <http://www.w3.org/2002/07/owl#>
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                 PREFIX chimera: <http://example.org/chimera#>
 
                 SELECT DISTINCT ?entity ?label ?type ?description ?sourceDocument
@@ -259,12 +307,25 @@ class GraphStore:
                     OPTIONAL {{ ?entity chimera:sourceChunk ?sourceChunk }}
                     OPTIONAL {{ ?entity chimera:pageNumber ?pageNumber }}
                     OPTIONAL {{ ?entity chimera:sourceJobId ?sourceJobId }}
+                    FILTER NOT EXISTS {{ ?entity a owl:Ontology }}
                     FILTER ({filters})
                 }}
-                LIMIT {max_results}
+                LIMIT {query_limit}
             """
 
-            return self.retrieve(query, max_results)
+            candidates = self.retrieve(query, query_limit)
+            lowered_terms = tuple(terms)
+
+            def relevance(result: RetrievalResult) -> tuple[int, int, float]:
+                content = result.content.casefold()
+                matched_terms = sum(content.count(term) for term in lowered_terms)
+                schema_penalty = int(
+                    "owl#class" in content or "owl#objectproperty" in content
+                )
+                return (matched_terms, -schema_penalty, result.score)
+
+            candidates.sort(key=relevance, reverse=True)
+            return candidates[:max_results]
             
         except Exception as e:
             self.logger.error(f"Error retrieving by entity: {e}")
@@ -377,17 +438,30 @@ class GraphStore:
             self.logger.error(f"Error retrieving subgraph: {e}")
             return []
     
+    def _is_ontology_metadata_row(self, row: Any, variables: Any) -> bool:
+        """Return whether a SPARQL row represents an OWL ontology header."""
+        values = list(row)
+        if OWL.Ontology in values:
+            return True
+        variable_names = {str(variable) for variable in variables}
+        for variable_name in ("entity", "subject"):
+            if variable_name not in variable_names:
+                continue
+            resource = row[variable_name]
+            if resource is not None and (resource, RDF.type, OWL.Ontology) in self.graph:
+                return True
+        return False
+
     def _format_result(self, row) -> str:
-        """Format SPARQL result row into readable content."""
+        """Format a SPARQL row, omitting unbound trailing values."""
         try:
-            # Convert row to readable string
             parts = []
             for item in row:
-                if hasattr(item, 'value'):
-                    parts.append(str(item.value))
-                else:
-                    parts.append(str(item))
-            
+                if item is None:
+                    continue
+                value = str(item.value if hasattr(item, "value") else item).strip()
+                if value and value.casefold() != "none":
+                    parts.append(value)
             return " | ".join(parts)
         except Exception:
             return str(row)

@@ -1,6 +1,8 @@
 import ollama
 from typing import Generator
 
+from .rdf_utils import format_rdf_text
+
 
 class ResponseGenerator:
     def __init__(self, model_name: str = "qwen2.5:3b"):
@@ -20,8 +22,9 @@ class ResponseGenerator:
             "If you cannot answer using the context, state that clearly."
         )
 
+        safe_context = format_rdf_text(assembled_context)
         prompt = (
-            f"CONTEXT INFORMATION:\n\n{assembled_context}\n\nUSER QUESTION: {query}"
+            f"CONTEXT INFORMATION:\n\n{safe_context}\n\nUSER QUESTION: {query}"
         )
 
         messages = [
@@ -35,4 +38,5 @@ class ResponseGenerator:
         )
 
         for chunk in response_stream:
-            yield chunk["message"]["content"]
+            content = chunk.get("message", {}).get("content", "")
+            yield format_rdf_text(content)

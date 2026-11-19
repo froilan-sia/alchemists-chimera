@@ -13,6 +13,7 @@ Responsibilities:
 
 import hashlib
 import logging
+import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -198,6 +199,24 @@ class PDFParser:
             "config": self.config.model_dump(),
         }
 
+    def _clean_page_text(self, text: str) -> str:
+        """Remove known demo boilerplate while preserving substantive lines."""
+        boilerplate_patterns = (
+            r"fictional\s+document",
+            r"for\s+demo\s+purpose(?:s)?\s+only",
+            r"document\s+generated\s+for\s+alchemist['’]s\s+chimera\s+testing\s+purposes",
+            r"not\s+an\s+official\s+hkma\s+publication",
+            r"not\s+for\s+regulatory\s+use",
+        )
+        boilerplate = re.compile("|".join(boilerplate_patterns), re.IGNORECASE)
+        meaningful_lines = [
+            line.strip()
+            for line in (text or "").splitlines()
+            if line.strip() and not boilerplate.search(line)
+        ]
+        cleaned = "\n".join(meaningful_lines)
+        return " ".join(cleaned.split()) if self.config.remove_extra_whitespace else cleaned
+
     def _process_page(
         self,
         reader: PdfReader,
@@ -221,11 +240,11 @@ class PDFParser:
         page = reader.pages[page_num]
 
         # Extract text from page
-        text = page.extract_text()
+        text = page.extract_text() or ""
 
-        # Clean text
-        if self.config.remove_extra_whitespace:
-            text = " ".join(text.split())
+        # Remove demo-only watermark and disclaimer lines before normalizing
+        # whitespace. The same helper is used by batch and streaming parsing.
+        text = self._clean_page_text(text)
 
         # Skip empty pages
         if not text.strip():

@@ -84,10 +84,16 @@ class CompatibleStagingManager:
         pending_records = []
         
         for record_id, staging_triple in pending_triples:
-            # Create StagingRecord from StagingTriple
+            validation_value = (staging_triple.metadata or {}).get(
+                "validation_status", ValidationStatus.QUARANTINED.value
+            )
+            try:
+                validation_status = ValidationStatus(str(validation_value).lower())
+            except ValueError:
+                validation_status = ValidationStatus.QUARANTINED
             record = StagingRecord(
                 triple=staging_triple.triple,
-                validation_status=ValidationStatus.QUARANTINED,  # Default to quarantined for pending
+                validation_status=validation_status,
                 validation_messages=["Pending human review"],
                 provenance_record=None,  # Would need to reconstruct from metadata
                 quarantine_reason="Pending human review",

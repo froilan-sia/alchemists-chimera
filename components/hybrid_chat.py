@@ -120,7 +120,11 @@ def format_rdf_text(text: Any) -> str:
 def display_content(result: RetrievalResult) -> str:
     """Return source content formatted for the audit panel."""
     if result.source == RetrievalSource.GRAPH or result.entity_links:
-        return format_rdf_text(result.content)
+        formatted = format_rdf_text(result.content)
+        parts = formatted.split(" | ")
+        while parts and parts[-1].strip().casefold() == "none":
+            parts.pop()
+        return " | ".join(parts)
     return result.content
 
 

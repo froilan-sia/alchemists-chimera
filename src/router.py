@@ -102,7 +102,7 @@ class HybridRouter:
             
             # 4. Fuse results
             fused_results = await self._fuse_results(
-                graph_results, vector_results, alpha
+                graph_results, vector_results, alpha, query_type, request.max_results
             )
             
             # 5. Build context for LLM
@@ -275,6 +275,8 @@ class HybridRouter:
         graph_results: list[RetrievalResult],
         vector_results: list[RetrievalResult],
         alpha: float,
+        query_type: QueryType | None = None,
+        max_results: int = 10,
     ) -> list[RetrievalResult]:
         """Fuse graph and vector results using configured strategy."""
         self.logger.debug(f"Fusing results with alpha={alpha}")
@@ -294,7 +296,12 @@ class HybridRouter:
                         content=result.content,
                         source=RetrievalSource.HYBRID,
                         score=fused_score,
-                        metadata={**result.metadata, "fusion_weight": alpha},
+                        metadata={
+                            **result.metadata,
+                            "fusion_weight": alpha,
+                            "original_source": "graph",
+                            "original_score": result.score,
+                        },
                         entity_links=result.entity_links,
                     )
                 )
@@ -307,26 +314,61 @@ class HybridRouter:
                         content=result.content,
                         source=RetrievalSource.HYBRID,
                         score=fused_score,
-                        metadata={**result.metadata, "fusion_weight": 1 - alpha},
+                        metadata={
+                            **result.metadata,
+                            "fusion_weight": 1 - alpha,
+                            "original_source": "vector",
+                            "original_score": result.score,
+                        },
                     )
                 )
             
-            # Sort by fused score
+            # Sort by fused score and honor the request limit.
             fused.sort(key=lambda x: x.score, reverse=True)
-            
-            # Limit to requested number
-            max_results = 10  # Default, will come from request
             fused = fused[:max_results]
+            if (
+                query_type == QueryType.ENTITY_RELATIONSHIP
+                and graph_results
+                and vector_results
+                and max_results > 1
+                and not any(
+                    result.metadata.get("original_source") == "vector"
+                    for result in fused
+                )
+            ):
+                fused = fused[: max_results - 1] + [
+                    RetrievalResult(
+                        content=vector_results[0].content,
+                        source=RetrievalSource.HYBRID,
+                        score=vector_results[0].score * (1 - alpha),
+                        metadata={
+                            **vector_results[0].metadata,
+                            "fusion_weight": 1 - alpha,
+                            "original_source": "vector",
+                            "original_score": vector_results[0].score,
+                        },
+                        entity_links=vector_results[0].entity_links,
+                    )
+                ]
+                fused.sort(key=lambda x: x.score, reverse=True)
         else:
             # Use FusionEngine
             self.logger.debug("Using FusionEngine for fusion")
             try:
-                fused = self.fusion_engine.fuse(graph_results, vector_results, alpha)
+                fused = self.fusion_engine.fuse(
+                    graph_results,
+                    vector_results,
+                    alpha,
+                    query_type=query_type,
+                    max_results=max_results,
+                )
             except Exception as e:
                 self.logger.error(f"Error in fusion engine: {e}")
                 self.logger.warning("Falling back to inline fusion")
                 # Fall back to inline fusion
-                return await self._fuse_results(graph_results, vector_results, alpha)
+                return await self._fuse_results(
+                    graph_results, vector_results, alpha, query_type, max_results
+                )
         
         self.logger.debug(f"Fused to {len(fused)} results")
         return fused
@@ -337,14 +379,31 @@ class HybridRouter:
         """Build context for LLM from retrieved results."""
         self.logger.debug("Building LLM context")
         
-        # Simple context building for now
         context_parts = [f"Query: {request.query}\n\nRelevant information:\n"]
-        
-        for i, result in enumerate(results, 1):
-            source_type = "Graph" if result.entity_links else "Vector"
-            context_parts.append(f"[{i}] {source_type} source (score: {result.score:.2f}):")
-            context_parts.append(f"{result.content}\n")
-        
+        graph_index = 0
+        vector_index = 0
+
+        for result in results:
+            original_source = str(result.metadata.get("original_source", "")).lower()
+            is_graph = original_source == "graph" or (
+                not original_source
+                and (result.source == RetrievalSource.GRAPH or result.entity_links)
+            )
+            if is_graph:
+                graph_index += 1
+                marker = f"[Fact {graph_index}]"
+                source_type = "Graph fact"
+                content = result.content
+            else:
+                vector_index += 1
+                marker = f"[Chunk {vector_index}]"
+                source_type = "Vector chunk"
+                content = result.content
+            context_parts.append(
+                f"{marker} {source_type} (score: {result.score:.2f}):"
+            )
+            context_parts.append(f"{content}\n")
+
         return "\n".join(context_parts)
     
     async def _generate_response(

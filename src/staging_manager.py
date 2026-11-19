@@ -295,6 +295,11 @@ class StagingManager:
             staging_triple = StagingTriple(triple)
         else:
             staging_triple = triple
+
+        # Persist validation classification with the record so a fresh UI
+        # process can still distinguish VALID from QUARANTINED pending rows.
+        staging_triple.metadata = dict(getattr(staging_triple, "metadata", {}) or {})
+        staging_triple.metadata.setdefault("validation_status", validation_status.value)
         
         # Auto-approve VALID triples only after the graph write and reload
         # complete. A failed auto-approval remains pending for recovery.
@@ -491,21 +496,10 @@ class StagingManager:
         restarting Streamlit or other applications.
         """
         try:
-            # Get the singleton graph store instance
             graph_store = self.get_graph_store()
-            
-            # Reload the ontology from the updated file
-            if graph_store._loaded:
-                logger.info("Triggering live reload of GraphStore...")
-                
-                # Clear and reload the graph
-                graph_store.graph = Graph()
-                graph_store._loaded = False
-                graph_store.load_ontology()
-                
-                logger.info("GraphStore live reload completed")
-            else:
-                logger.warning("GraphStore not loaded, cannot trigger live reload")
+            logger.info("Triggering live reload of GraphStore...")
+            graph_store.reload()
+            logger.info("GraphStore live reload completed")
                 
         except Exception as e:
             logger.error(f"Failed to trigger live reload: {e}")
